@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { DocumentScannerIcon, UserIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon, UserIcon } from "@heroicons/react/24/outline";
 
 export default function Header() {
   return (
@@ -7,7 +7,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <DocumentScannerIcon className="h-8 w-8 text-blue-700 mr-3" />
+            <DocumentTextIcon className="h-8 w-8 text-blue-700 mr-3" />
             <h1 className="text-xl font-semibold text-gray-900">License Scanner</h1>
           </div>
           <nav className="flex items-center space-x-4">
