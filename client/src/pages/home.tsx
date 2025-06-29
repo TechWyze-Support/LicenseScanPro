@@ -41,12 +41,12 @@ export default function Home() {
   // Fetch today's stats
   const { data: stats } = useQuery({
     queryKey: ['/api/stats/today'],
-  });
+  }) as { data: { scanned: number; failed: number; newCustomers: number } | undefined };
 
   // Fetch recent customers
   const { data: recentCustomers } = useQuery({
     queryKey: ['/api/customers/recent'],
-  });
+  }) as { data: Customer[] | undefined };
 
   const handleCameraCapture = async (frontImage: string, backImage: string) => {
     await processImages(frontImage, backImage);
@@ -128,8 +128,8 @@ export default function Home() {
 
       // Set results
       setExtractedData(barcodeData);
-      setProfilePhoto(extractedPhoto);
-      setSignature(extractedSignature);
+      setProfilePhoto(extractedPhoto ?? null);
+      setSignature(extractedSignature ?? null);
       setShowCustomerForm(true);
 
       toast({
@@ -309,21 +309,21 @@ export default function Home() {
                   <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
                   <span className="text-sm text-gray-600">Scanned</span>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{stats?.scanned || 0}</span>
+                <span className="text-2xl font-bold text-gray-900">{(stats as any)?.scanned || 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <ExclamationTriangleIcon className="h-5 w-5 text-orange-500 mr-2" />
                   <span className="text-sm text-gray-600">Failed</span>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{stats?.failed || 0}</span>
+                <span className="text-2xl font-bold text-gray-900">{(stats as any)?.failed || 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <UsersIcon className="h-5 w-5 text-blue-500 mr-2" />
                   <span className="text-sm text-gray-600">New Customers</span>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{stats?.newCustomers || 0}</span>
+                <span className="text-2xl font-bold text-gray-900">{(stats as any)?.newCustomers || 0}</span>
               </div>
             </CardContent>
           </Card>
@@ -351,8 +351,8 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {recentCustomers && recentCustomers.length > 0 ? (
-                    recentCustomers.map((customer: Customer) => (
+                  {(recentCustomers as any) && (recentCustomers as any).length > 0 ? (
+                    (recentCustomers as any).map((customer: Customer) => (
                       <tr key={customer.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
