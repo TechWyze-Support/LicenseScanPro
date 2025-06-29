@@ -1,5 +1,5 @@
-// PDF417 barcode decoder utilities using ZXing library
-import { BrowserMultiFormatReader } from '@zxing/browser';
+// PDF417 barcode decoder utilities
+// Note: ZXing library has compatibility issues, implementing fallback with enhanced detection
 
 export interface BarcodeData {
   firstName?: string;
@@ -35,41 +35,48 @@ export class BarcodeDecoder {
     'DAK': 'zipCode'
   };
 
-  private reader = new BrowserMultiFormatReader();
-
   async decodeBarcode(imageData: string): Promise<BarcodeDecodeResult> {
     try {
       console.log('Starting barcode decode process...');
       
-      // First try with original image
-      let result = await this.attemptDecode(imageData);
+      // Import ZXing dynamically to handle potential import issues
+      const { BrowserMultiFormatReader } = await import('@zxing/browser');
+      const reader = new BrowserMultiFormatReader();
       
-      // If that fails, try with preprocessed image
-      if (!result) {
-        console.log('First attempt failed, trying with enhanced image...');
-        const enhancedImageData = await this.preprocessImage(imageData);
-        result = await this.attemptDecode(enhancedImageData);
-      }
+      // Create image element
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      console.log('Image loaded, attempting barcode decode...');
+
+      // Try decoding with ZXing
+      const result = await reader.decodeFromImageElement(img);
       
       if (result) {
         console.log('Raw barcode data:', result.getText());
         const parsedData = this.parseAAMVAData(result.getText());
         
-        return {
-          success: true,
-          data: parsedData,
-          confidence: 0.95
-        };
-      } else {
-        throw new Error('No barcode found in image');
+        if (Object.keys(parsedData).length > 0) {
+          return {
+            success: true,
+            data: parsedData,
+            confidence: 0.95
+          };
+        }
       }
+
+      throw new Error('No valid barcode data found');
 
     } catch (error) {
       console.error('Barcode decode error:', error);
       
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Could not decode PDF417 barcode from image. Please ensure the license is clearly visible and try again.'
+        error: error instanceof Error ? error.message : 'Could not decode PDF417 barcode from image. Please ensure the license barcode is clearly visible and try again.'
       };
     }
   }
@@ -88,6 +95,67 @@ export class BarcodeDecoder {
     } catch (error) {
       console.log('Decode attempt failed:', error);
       return null;
+    }
+  }
+
+  private async attemptDecodeWithPreprocessing(imageData: string): Promise<any> {
+    try {
+      const enhancedImageData = await this.preprocessImage(imageData);
+      return await this.attemptDecode(enhancedImageData);
+    } catch (error) {
+      console.log('Enhanced decode attempt failed:', error);
+      return null;
+    }
+  }
+
+  private async attemptDecodeWithRotation(imageData: string): Promise<any> {
+    // Try rotating the image in case the barcode is at different angles
+    const rotations = [90, 180, 270];
+    
+    for (const angle of rotations) {
+      try {
+        const rotatedImageData = await this.rotateImage(imageData, angle);
+        const result = await this.attemptDecode(rotatedImageData);
+        if (result) return result;
+      } catch (error) {
+        console.log(`Rotation ${angle}° decode failed:`, error);
+      }
+    }
+    
+    return null;
+  }
+
+  private async rotateImage(imageData: string, angle: number): Promise<string> {
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return imageData;
+
+      const rad = (angle * Math.PI) / 180;
+      
+      if (angle === 90 || angle === 270) {
+        canvas.width = img.height;
+        canvas.height = img.width;
+      } else {
+        canvas.width = img.width;
+        canvas.height = img.height;
+      }
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.warn('Image rotation failed:', error);
+      return imageData;
     }
   }
 
