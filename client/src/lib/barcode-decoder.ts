@@ -120,28 +120,7 @@ export class BarcodeDecoder {
     throw new Error('Alternative libraries failed');
   }
 
-  private async tryMockDataForTesting(imageData: string): Promise<BarcodeDecodeResult> {
-    console.log('Using test data for development...');
-    
-    // Only use for testing when no real barcode is detected
-    // This helps developers test the form functionality
-    return {
-      success: true,
-      data: {
-        firstName: 'John',
-        lastName: 'Doe',
-        middleName: 'M',
-        dateOfBirth: '01/15/1990',
-        licenseNumber: 'D1234567',
-        expirationDate: '12/31/2025',
-        address: '123 Main St',
-        city: 'Anytown',
-        state: 'CA',
-        zipCode: '12345'
-      },
-      confidence: 0.50
-    };
-  }
+
 
   private async tryZXingDecode(imageData: string): Promise<BarcodeDecodeResult> {
     try {
