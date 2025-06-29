@@ -7,6 +7,9 @@ export interface CameraHook {
   stopCamera: () => void;
   captureImage: () => string | null;
   switchCamera: () => Promise<void>;
+  selectCamera: (deviceId: string) => Promise<void>;
+  availableDevices: MediaDeviceInfo[];
+  currentDeviceId: string | null;
   videoRef: React.RefObject<HTMLVideoElement>;
 }
 
@@ -163,6 +166,17 @@ export function useCamera(): CameraHook {
     }, 200);
   }, [availableDevices, currentDeviceId, stopCamera, startCamera]);
 
+  const selectCamera = useCallback(async (deviceId: string) => {
+    console.log('Selecting camera:', deviceId);
+    stopCamera();
+    setCurrentDeviceId(deviceId);
+    
+    // Restart camera with selected device
+    setTimeout(() => {
+      startCamera();
+    }, 200);
+  }, [stopCamera, startCamera]);
+
   return {
     isActive,
     error,
@@ -170,6 +184,9 @@ export function useCamera(): CameraHook {
     stopCamera,
     captureImage,
     switchCamera,
+    selectCamera,
+    availableDevices,
+    currentDeviceId,
     videoRef
   };
 }

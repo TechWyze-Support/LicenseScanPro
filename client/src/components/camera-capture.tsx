@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCamera } from '@/hooks/use-camera';
-import { CameraIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CameraCaptureProps {
@@ -17,13 +18,70 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
   const [showPreview, setShowPreview] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isCountingDown, setIsCountingDown] = useState(false);
+  const [autoShutterEnabled, setAutoShutterEnabled] = useState(true);
   
-  const { isActive, error, startCamera, stopCamera, captureImage, switchCamera, videoRef } = useCamera();
+  const { isActive, error, startCamera, stopCamera, captureImage, videoRef, availableDevices, currentDeviceId, selectCamera } = useCamera();
 
   useEffect(() => {
     startCamera();
     return () => stopCamera();
   }, [startCamera, stopCamera]);
+
+  // Auto-shutter detection
+  useEffect(() => {
+    if (!autoShutterEnabled || !isActive || showPreview || isCountingDown) return;
+
+    const detectLicenseInFrame = () => {
+      if (!videoRef.current) return;
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      context.drawImage(videoRef.current, 0, 0);
+
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Simple edge detection to check if license-like rectangle fills most of the frame
+      let edgeCount = 0;
+      const threshold = 50;
+      const sampleRate = 4; // Check every 4th pixel for performance
+
+      for (let i = 0; i < data.length; i += 4 * sampleRate) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Calculate luminance
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        
+        // Simple edge detection based on luminance changes
+        if (i > 4 * sampleRate) {
+          const prevR = data[i - 4 * sampleRate];
+          const prevG = data[i - 3 * sampleRate];
+          const prevB = data[i - 2 * sampleRate];
+          const prevLuminance = 0.299 * prevR + 0.587 * prevG + 0.114 * prevB;
+          
+          if (Math.abs(luminance - prevLuminance) > threshold) {
+            edgeCount++;
+          }
+        }
+      }
+
+      // If we detect significant edges (suggesting a license card), trigger capture
+      const edgeRatio = edgeCount / (data.length / (4 * sampleRate));
+      if (edgeRatio > 0.15) { // Threshold for license detection
+        console.log('License detected in frame, triggering auto-capture');
+        startCountdown();
+      }
+    };
+
+    const interval = setInterval(detectLicenseInFrame, 1000); // Check every second
+    return () => clearInterval(interval);
+  }, [autoShutterEnabled, isActive, showPreview, isCountingDown, startCountdown]);
 
   const startCountdown = () => {
     if (isCountingDown) return;
@@ -177,6 +235,40 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
           </div>
         </div>
 
+        {/* Camera Selection */}
+        {!showPreview && availableDevices.length > 1 && (
+          <div className="mb-4">
+            <Select value={currentDeviceId || ''} onValueChange={selectCamera}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select camera..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDevices.map((device) => (
+                  <SelectItem key={device.deviceId} value={device.deviceId}>
+                    {device.label || 'Camera'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Auto-shutter Toggle */}
+        {!showPreview && (
+          <div className="mb-4 flex items-center justify-center space-x-2">
+            <input
+              type="checkbox"
+              id="autoShutter"
+              checked={autoShutterEnabled}
+              onChange={(e) => setAutoShutterEnabled(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="autoShutter" className="text-sm">
+              Auto-capture when license fills screen
+            </label>
+          </div>
+        )}
+
         {/* Controls */}
         <div className="flex justify-center space-x-4">
           {showPreview ? (
@@ -200,14 +292,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                 className="bg-red-500 hover:bg-red-700 rounded-full px-8"
               >
                 <CameraIcon className="h-6 w-6" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={switchCamera}
-                disabled={!isActive}
-              >
-                <ArrowPathIcon className="h-4 w-4 mr-2" />
-                Switch Camera
               </Button>
             </>
           )}
