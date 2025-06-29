@@ -1,0 +1,594 @@
+# Replit Prompts for Driver's License Scanner System
+
+## 1. Main Application Setup Prompt
+
+```
+Create a React application for a driver's license scanner system with the following requirements:
+
+**Project Structure:**
+- React frontend with TypeScript
+- Node.js backend with Express
+- SQLite database for development
+- File upload handling with Multer
+- Image processing with Sharp
+- PDF417 barcode decoding capability
+
+**Main Features to Implement:**
+1. Minimalist UI with only "Scan License" and "Upload License" buttons
+2. Camera integration for license capture
+3. File upload for license images
+4. PDF417 barcode decoding
+5. Face detection and cropping
+6. Signature extraction
+7. Customer profile creation with auto-filled data
+
+**Initial Setup:**
+- Set up the basic React app structure
+- Configure Express server with necessary middleware
+- Create basic database schema for customers and license data
+- Set up file upload handling
+- Install required dependencies: react-webcam, face-api.js, sharp, multer, sqlite3
+
+**UI Requirements:**
+- Clean, minimal design
+- Responsive layout
+- Loading states and error handling
+- Success/failure notifications
+
+Please create the initial project structure and basic components.
+```
+
+## 2. Camera Integration Prompt
+
+```
+Implement a camera interface component for capturing driver's license photos with these specifications:
+
+**Component Requirements:**
+- Use react-webcam for camera access
+- Capture both front and back of license
+- Provide visual guidance overlay for license alignment
+- Include capture buttons and retake functionality
+- Implement resolution validation (minimum 300dpi equivalent)
+
+**Features to Build:**
+1. **CameraCapture Component:**
+   - Access user's webcam
+   - Show live camera feed
+   - Overlay guide rectangle for license alignment
+   - Capture high-quality images
+   - Allow switching between front/back capture modes
+
+2. **Image Quality Validation:**
+   - Check image resolution before proceeding
+   - Validate that license fits within guide area
+   - Provide feedback for poor quality images
+
+3. **User Experience:**
+   - Clear instructions for each step
+   - Visual feedback during capture
+   - Ability to retake photos
+   - Preview captured images before submission
+
+**Technical Requirements:**
+- Handle camera permissions gracefully
+- Support multiple camera devices if available
+- Optimize image quality for OCR processing
+- Implement proper error handling for camera access issues
+
+Create the camera capture component with proper state management and error handling.
+```
+
+## 3. File Upload System Prompt
+
+```
+Create a file upload system for driver's license images with the following specifications:
+
+**Upload Component Features:**
+1. **Multi-file Upload:**
+   - Accept JPEG, PNG, PDF formats
+   - Separate upload areas for front and back of license
+   - Drag-and-drop functionality
+   - File validation (size, type, dimensions)
+
+2. **Backend Upload Handler:**
+   - Express.js endpoint for file uploads
+   - Multer configuration for image processing
+   - File storage in organized directory structure
+   - Generate unique filenames to prevent conflicts
+
+3. **Image Processing:**
+   - Resize images for consistent processing
+   - Convert to standard format if needed
+   - Generate thumbnails for preview
+   - Validate image quality for OCR
+
+**Implementation Details:**
+- Maximum file size: 10MB per image
+- Supported formats: JPEG, PNG, PDF
+- Store original and processed versions
+- Implement progress indicators for uploads
+- Add image preview before processing
+
+**Security Measures:**
+- Validate file types on both client and server
+- Scan for malicious content
+- Implement rate limiting for uploads
+- Secure file storage with proper permissions
+
+**Error Handling:**
+- Handle upload failures gracefully
+- Provide clear error messages
+- Allow retry functionality
+- Validate file integrity
+
+Create the complete upload system with proper validation and security measures.
+```
+
+## 4. PDF417 Barcode Decoder Prompt
+
+```
+Implement PDF417 barcode decoding for driver's license data extraction:
+
+**Core Functionality:**
+1. **Barcode Detection and Decoding:**
+   - Use a JavaScript PDF417 decoder library (like pdf417-js or zxing-js)
+   - Locate PDF417 barcode on the back of license
+   - Extract encoded data string
+   - Parse the decoded data into structured format
+
+2. **Data Parsing:**
+   - Parse AAMVA-compliant data format
+   - Extract key fields: name, DOB, license number, address, etc.
+   - Handle different state formats and data layouts
+   - Map extracted data to database fields
+
+3. **Field Mapping:**
+   ```javascript
+   const licenseFields = {
+     firstName: 'DAC',
+     lastName: 'DCS', 
+     middleName: 'DAD',
+     dateOfBirth: 'DBB',
+     licenseNumber: 'DAQ',
+     expirationDate: 'DBA',
+     address: 'DAG',
+     city: 'DAI',
+     state: 'DAJ',
+     zipCode: 'DAK'
+   };
+   ```
+
+4. **Error Handling:**
+   - Handle unreadable barcodes
+   - Provide manual entry fallback
+   - Validate extracted data format
+   - Show confidence scores for extracted fields
+
+**Integration Requirements:**
+- Process images from both camera and upload
+- Return structured data object
+- Handle multiple license formats
+- Provide data validation and correction interface
+
+**Technical Implementation:**
+- Use Web Workers for heavy processing
+- Implement caching for processed results
+- Add preprocessing for better barcode detection
+- Support batch processing if needed
+
+Create the PDF417 decoder with proper error handling and data validation.
+```
+
+## 5. Face Detection and Cropping Prompt
+
+```
+Implement face detection and cropping functionality for driver's license photos:
+
+**Face Detection Setup:**
+1. **Initialize face-api.js:**
+   - Load face detection models
+   - Configure detection parameters
+   - Set up face landmark detection
+   - Optimize for license photo formats
+
+2. **Face Cropping Logic:**
+   - Detect faces in license front image
+   - Calculate optimal crop boundaries
+   - Extract face region with appropriate padding
+   - Resize to standard profile photo dimensions (e.g., 300x300)
+
+**Implementation Details:**
+```javascript
+// Face detection and cropping function
+async function detectAndCropFace(imageFile) {
+  // Load image and detect faces
+  // Calculate crop boundaries
+  // Extract and resize face region
+  // Return cropped image blob
+}
+```
+
+**Features to Include:**
+1. **Automatic Face Detection:**
+   - Use face-api.js for reliable detection
+   - Handle multiple faces (select largest/central)
+   - Validate face detection confidence
+   - Provide manual adjustment if needed
+
+2. **Crop Optimization:**
+   - Include appropriate padding around face
+   - Maintain aspect ratio
+   - Enhance image quality for profile use
+   - Generate multiple sizes if needed
+
+3. **Manual Adjustment:**
+   - Allow users to adjust crop boundaries
+   - Provide crop preview before saving
+   - Enable manual selection if auto-detection fails
+   - Save both original and cropped versions
+
+**Error Handling:**
+- Handle cases with no face detected
+- Provide fallback options
+- Validate image quality for face detection
+- Allow manual photo upload as alternative
+
+**Integration:**
+- Connect with camera capture component
+- Integrate with file upload system
+- Save cropped images to customer profile
+- Update UI with cropped photo preview
+
+Create the face detection and cropping system with proper error handling and user controls.
+```
+
+## 6. Signature Extraction Prompt
+
+```
+Implement signature extraction from driver's license front images:
+
+**Signature Detection:**
+1. **Region Detection:**
+   - Use coordinate-based detection for known license layouts
+   - Implement template matching for signature areas
+   - Handle different state license formats
+   - Provide manual selection fallback
+
+2. **Image Processing:**
+   - Enhance signature clarity
+   - Remove background noise
+   - Convert to appropriate format for storage
+   - Optimize for display in customer profile
+
+**Implementation Approach:**
+```javascript
+// Signature extraction function
+async function extractSignature(frontImage, licenseState) {
+  // Determine signature region based on state
+  // Extract signature area
+  // Enhance and clean signature image
+  // Return processed signature
+}
+```
+
+**State-Specific Handling:**
+- Create coordinate maps for different states
+- Handle varying signature locations
+- Support multiple license formats
+- Provide generic fallback for unknown formats
+
+**Manual Override:**
+1. **Selection Tool:**
+   - Allow users to manually select signature area
+   - Provide drawing tool for signature region
+   - Preview extracted signature
+   - Save manual selections for future use
+
+2. **Quality Enhancement:**
+   - Adjust contrast and brightness
+   - Remove background artifacts
+   - Resize for consistent display
+   - Validate signature clarity
+
+**Integration Features:**
+- Connect with main scanning workflow
+- Save signature to customer profile
+- Display signature in profile view
+- Allow signature replacement if needed
+
+**Error Handling:**
+- Handle missing or unclear signatures
+- Provide manual input options
+- Validate signature quality
+- Store extraction metadata
+
+Create the signature extraction system with state-specific handling and manual override capabilities.
+```
+
+## 7. Customer Profile Integration Prompt
+
+```
+Create the customer profile system that integrates all extracted data:
+
+**Database Schema:**
+```sql
+-- Customer table
+CREATE TABLE customers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  middle_name TEXT,
+  date_of_birth DATE NOT NULL,
+  license_number TEXT UNIQUE NOT NULL,
+  license_state TEXT NOT NULL,
+  license_expiration DATE NOT NULL,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  zip_code TEXT,
+  profile_photo_path TEXT,
+  signature_path TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- License images table
+CREATE TABLE license_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER,
+  front_image_path TEXT,
+  back_image_path TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers (id)
+);
+```
+
+**Profile Creation Flow:**
+1. **Data Integration:**
+   - Combine PDF417 data with extracted images
+   - Validate all required fields
+   - Handle missing or invalid data
+   - Create customer record in database
+
+2. **File Management:**
+   - Save all images with organized naming
+   - Store file paths in database
+   - Implement secure file access
+   - Generate thumbnails for quick access
+
+3. **Profile Display:**
+   - Show customer information form
+   - Display cropped profile photo
+   - Show extracted signature
+   - Allow manual corrections before saving
+
+**API Endpoints:**
+```javascript
+// Create customer profile
+POST /api/customers
+// Update customer data
+PUT /api/customers/:id
+// Get customer profile
+GET /api/customers/:id
+// Upload profile images
+POST /api/customers/:id/images
+```
+
+**Frontend Components:**
+- CustomerProfile component
+- ProfileForm with validation
+- ImageDisplay components
+- EditProfile functionality
+
+**Validation and Security:**
+- Validate all extracted data
+- Sanitize input fields
+- Implement data encryption
+- Add role-based access control
+- Audit trail for changes
+
+Create the complete customer profile system with proper data validation and security measures.
+```
+
+## 8. Error Handling and UI Polish Prompt
+
+```
+Implement comprehensive error handling and UI polish for the license scanner:
+
+**Error Handling System:**
+1. **Camera Errors:**
+   - Handle camera permission denied
+   - Manage camera not available
+   - Deal with poor lighting conditions
+   - Handle capture failures
+
+2. **Upload Errors:**
+   - File size exceeded
+   - Invalid file format
+   - Corrupted image files
+   - Network upload failures
+
+3. **Processing Errors:**
+   - Barcode not found or unreadable
+   - Face detection failures
+   - Signature extraction issues
+   - Data validation errors
+
+**User Experience Enhancements:**
+1. **Loading States:**
+   - Show progress during image processing
+   - Display step-by-step progress
+   - Provide estimated completion times
+   - Allow cancellation of operations
+
+2. **Success/Failure Feedback:**
+   - Clear success notifications
+   - Detailed error messages
+   - Suggested next steps
+   - Retry mechanisms
+
+3. **Responsive Design:**
+   - Mobile-friendly interface
+   - Tablet optimization
+   - Desktop full-screen mode
+   - Adaptive layouts
+
+**Performance Optimizations:**
+```javascript
+// Image processing optimization
+const processLicenseImages = async (frontImage, backImage) => {
+  // Implement parallel processing
+  // Use Web Workers for heavy tasks
+  // Cache processed results
+  // Optimize memory usage
+};
+```
+
+**Accessibility Features:**
+- Screen reader support
+- Keyboard navigation
+- High contrast mode
+- Font size adjustments
+- Alt text for images
+
+**Testing Requirements:**
+- Unit tests for all components
+- Integration tests for full workflow
+- Error simulation tests
+- Performance benchmarks
+- Cross-browser compatibility
+
+**Security Hardening:**
+- Input sanitization
+- File type validation
+- Rate limiting
+- CSRF protection
+- Secure file storage
+
+Create the error handling system and UI polish with comprehensive testing and security measures.
+```
+
+## 9. Deployment and Configuration Prompt
+
+```
+Set up deployment configuration and environment management:
+
+**Environment Configuration:**
+1. **Development Setup:**
+   - Local development with hot reload
+   - SQLite database for development
+   - Local file storage
+   - Debug logging enabled
+
+2. **Production Configuration:**
+   - Production database setup
+   - Cloud file storage integration
+   - Environment variable management
+   - Security configurations
+
+**Deployment Options:**
+```dockerfile
+# Docker configuration
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+**Environment Variables:**
+```env
+# Database
+DATABASE_URL=
+# File Storage
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=10485760
+# Security
+JWT_SECRET=
+ENCRYPTION_KEY=
+# API Keys
+FACE_API_KEY=
+```
+
+**Monitoring and Logging:**
+- Application performance monitoring
+- Error tracking and reporting
+- Audit logging for security
+- Usage analytics
+- Health check endpoints
+
+**Backup and Recovery:**
+- Database backup strategy
+- File storage backup
+- Disaster recovery plan
+- Data retention policies
+
+**Scaling Considerations:**
+- Load balancing configuration
+- Horizontal scaling options
+- Database optimization
+- CDN integration for images
+
+Create the deployment configuration with proper environment management and monitoring.
+```
+
+## 10. Integration Testing Prompt
+
+```
+Create comprehensive integration tests for the license scanner system:
+
+**Test Scenarios:**
+1. **End-to-End Workflow:**
+   - Complete license scanning process
+   - Data extraction and validation
+   - Customer profile creation
+   - Image processing pipeline
+
+2. **Error Scenarios:**
+   - Invalid license images
+   - Barcode reading failures
+   - Network connectivity issues
+   - Database connection problems
+
+**Test Implementation:**
+```javascript
+// Integration test example
+describe('License Scanner Integration', () => {
+  test('should process valid license and create customer', async () => {
+    // Upload test license images
+    // Verify PDF417 decoding
+    // Check face detection
+    // Validate signature extraction
+    // Confirm customer creation
+  });
+});
+```
+
+**Test Data:**
+- Sample license images from different states
+- Invalid image files for error testing
+- Corrupted barcode samples
+- Various image resolutions and formats
+
+**Performance Testing:**
+- Load testing for concurrent users
+- Image processing performance
+- Database query optimization
+- Memory usage monitoring
+
+**Security Testing:**
+- File upload security
+- SQL injection prevention
+- XSS vulnerability testing
+- Authentication and authorization
+
+**Browser Compatibility:**
+- Chrome, Firefox, Safari, Edge
+- Mobile browser testing
+- Camera API compatibility
+- File upload functionality
+
+Create comprehensive integration tests with proper test data and automation.
+```
