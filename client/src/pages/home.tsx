@@ -132,10 +132,19 @@ export default function Home() {
       setSignature(extractedSignature ?? null);
       setShowCustomerForm(true);
 
-      toast({
-        title: "Processing complete",
-        description: "License data has been successfully extracted.",
-      });
+      // Only show success message if we actually extracted barcode data
+      if (barcodeData) {
+        toast({
+          title: "Processing complete",
+          description: "License info has been properly extracted.",
+        });
+      } else {
+        toast({
+          title: "Processing complete",
+          description: "Images processed. Please manually enter the license information.",
+          variant: "default",
+        });
+      }
 
     } catch (error) {
       console.error('Processing error:', error);

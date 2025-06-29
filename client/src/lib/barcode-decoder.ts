@@ -37,44 +37,34 @@ export class BarcodeDecoder {
 
   async decodeBarcode(imageData: string): Promise<BarcodeDecodeResult> {
     try {
-      console.log('Starting barcode decode process...');
+      console.log('Starting comprehensive barcode decode process...');
       
-      // Import ZXing dynamically to handle potential import issues
-      const { BrowserMultiFormatReader } = await import('@zxing/browser');
-      const reader = new BrowserMultiFormatReader();
-      
-      // Create image element
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageData;
-      });
+      // Enhanced multi-strategy approach
+      const strategies = [
+        () => this.tryZXingDecode(imageData),
+        () => this.tryPreprocessedDecode(imageData),
+        () => this.tryCanvasBasedDecode(imageData),
+        () => this.tryAlternativeLibraries(imageData)
+      ];
 
-      console.log('Image loaded, attempting barcode decode...');
-
-      try {
-        // Try decoding with ZXing
-        const result = await reader.decodeFromImageElement(img);
-        
-        if (result) {
-          console.log('Raw barcode data:', result.getText());
-          const parsedData = this.parseAAMVAData(result.getText());
-          
-          if (Object.keys(parsedData).length > 0) {
-            return {
-              success: true,
-              data: parsedData,
-              confidence: 0.95
-            };
+      for (let i = 0; i < strategies.length; i++) {
+        try {
+          console.log(`Trying decode strategy ${i + 1}/${strategies.length}...`);
+          const result = await strategies[i]();
+          if (result.success && result.data && Object.keys(result.data).length > 0) {
+            console.log(`Strategy ${i + 1} succeeded with data:`, result.data);
+            return result;
           }
+        } catch (error) {
+          console.log(`Strategy ${i + 1} failed:`, error);
         }
-      } catch (decodeError) {
-        console.warn('ZXing decode failed:', decodeError);
       }
 
-      // If ZXing fails, return error but don't crash the app
-      throw new Error('PDF417 barcode not detected in image');
+      // If all strategies fail
+      return {
+        success: false,
+        error: 'Could not decode PDF417 barcode from image. Please ensure the license barcode is clearly visible and try again.'
+      };
 
     } catch (error) {
       console.error('Barcode decode error:', error);
@@ -86,38 +76,310 @@ export class BarcodeDecoder {
     }
   }
 
+  private async tryAlternativeLibraries(imageData: string): Promise<BarcodeDecodeResult> {
+    console.log('Trying alternative barcode libraries...');
+    
+    // Try jsQR for QR codes (some states use QR codes)
+    try {
+      const jsQR = await import('jsqr');
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not available');
+
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      const imageData2 = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR.default(imageData2.data, imageData2.width, imageData2.height);
+
+      if (code) {
+        console.log('jsQR found code:', code.data);
+        const parsedData = this.parseAAMVAData(code.data);
+        
+        if (Object.keys(parsedData).length > 0) {
+          return {
+            success: true,
+            data: parsedData,
+            confidence: 0.80
+          };
+        }
+      }
+    } catch (error) {
+      console.log('jsQR failed:', error);
+    }
+    
+    throw new Error('Alternative libraries failed');
+  }
+
+  private async tryMockDataForTesting(imageData: string): Promise<BarcodeDecodeResult> {
+    console.log('Using test data for development...');
+    
+    // Only use for testing when no real barcode is detected
+    // This helps developers test the form functionality
+    return {
+      success: true,
+      data: {
+        firstName: 'John',
+        lastName: 'Doe',
+        middleName: 'M',
+        dateOfBirth: '01/15/1990',
+        licenseNumber: 'D1234567',
+        expirationDate: '12/31/2025',
+        address: '123 Main St',
+        city: 'Anytown',
+        state: 'CA',
+        zipCode: '12345'
+      },
+      confidence: 0.50
+    };
+  }
+
+  private async tryZXingDecode(imageData: string): Promise<BarcodeDecodeResult> {
+    try {
+      const { BrowserMultiFormatReader } = await import('@zxing/browser');
+      const reader = new BrowserMultiFormatReader();
+      
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      console.log('Trying ZXing decode...');
+      const result = await reader.decodeFromImageElement(img);
+      
+      if (result) {
+        console.log('Raw barcode data:', result.getText());
+        const parsedData = this.parseAAMVAData(result.getText());
+        
+        if (Object.keys(parsedData).length > 0) {
+          return {
+            success: true,
+            data: parsedData,
+            confidence: 0.95
+          };
+        }
+      }
+    } catch (error) {
+      console.log('ZXing decode error:', error);
+    }
+    
+    // Try Quagga as fallback
+    return this.tryQuaggaDecode(imageData);
+  }
+
+  private async tryQuaggaDecode(imageData: string): Promise<BarcodeDecodeResult> {
+    return new Promise((resolve) => {
+      try {
+        console.log('Trying Quagga decode...');
+        
+        const Quagga = require('quagga');
+        
+        // Create canvas for Quagga processing
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas not available');
+
+        const img = new Image();
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          
+          // Get image data for Quagga
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          
+          Quagga.decodeSingle({
+            src: canvas.toDataURL(),
+            numOfWorkers: 0,
+            inputStream: {
+              size: canvas.width && canvas.height ? Math.min(canvas.width, canvas.height) : 800,
+            },
+            decoder: {
+              readers: ['pdf417_reader', 'code_128_reader', 'code_39_reader']
+            },
+            locate: true,
+            locator: {
+              patchSize: 'medium',
+              halfSample: true
+            }
+          }, (result: any) => {
+            if (result && result.codeResult) {
+              console.log('Quagga raw barcode data:', result.codeResult.code);
+              const parsedData = this.parseAAMVAData(result.codeResult.code);
+              
+              if (Object.keys(parsedData).length > 0) {
+                resolve({
+                  success: true,
+                  data: parsedData,
+                  confidence: 0.85
+                });
+                return;
+              }
+            }
+            
+            console.log('Quagga decode failed');
+            resolve({
+              success: false,
+              error: 'Quagga decode failed'
+            });
+          });
+        };
+        
+        img.onerror = () => {
+          resolve({
+            success: false,
+            error: 'Image load failed'
+          });
+        };
+        
+        img.src = imageData;
+        
+      } catch (error) {
+        console.log('Quagga setup error:', error);
+        resolve({
+          success: false,
+          error: 'Quagga not available'
+        });
+      }
+    });
+  }
+
+  private async tryPreprocessedDecode(imageData: string): Promise<BarcodeDecodeResult> {
+    console.log('Trying preprocessed decode...');
+    
+    // Preprocess image for better barcode detection
+    const preprocessedImage = await this.preprocessImage(imageData);
+    return this.tryZXingDecode(preprocessedImage);
+  }
+
+  private async tryCanvasBasedDecode(imageData: string): Promise<BarcodeDecodeResult> {
+    console.log('Trying canvas-based decode...');
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context not available');
+
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = imageData;
+    });
+
+    // Resize and enhance image
+    canvas.width = img.width * 2;
+    canvas.height = img.height * 2;
+    
+    // Apply image enhancement
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    
+    // Convert back to data URL
+    const enhancedImage = canvas.toDataURL('image/png');
+    
+    return this.tryZXingDecode(enhancedImage);
+  }
+
 
 
   private parseAAMVAData(rawData: string): BarcodeData {
     const data: BarcodeData = {};
     
-    // AAMVA data can be in various formats, try different parsing approaches
+    console.log('Parsing AAMVA data from:', rawData.substring(0, 100) + '...');
     
-    // First, try line-by-line parsing for structured data
-    const lines = rawData.split(/[\n\r]+/);
-    for (const line of lines) {
-      const match = line.match(/^([A-Z]{3})(.+)$/);
-      if (match) {
-        const [, code, value] = match;
-        const field = this.fieldMapping[code];
-        if (field) {
-          data[field] = value.trim();
-        }
-      }
+    // AAMVA PDF417 data formats vary by state but generally follow patterns
+    // Try multiple parsing strategies for robustness
+    
+    // Strategy 1: Parse field codes with delimiters
+    this.parseFieldCodes(rawData, data);
+    
+    // Strategy 2: If limited data, try alternative parsing
+    if (Object.keys(data).length < 3) {
+      this.parseAlternativeFormat(rawData, data);
     }
     
-    // If that didn't work, try parsing as continuous string with field codes
-    if (Object.keys(data).length === 0) {
-      for (const [code, field] of Object.entries(this.fieldMapping)) {
-        const regex = new RegExp(code + '([^A-Z]{3})*?(?=[A-Z]{3}|$)', 'g');
-        const match = regex.exec(rawData);
-        if (match && match[1]) {
+    // Strategy 3: Extract common patterns even without field codes
+    if (Object.keys(data).length < 3) {
+      this.parseCommonPatterns(rawData, data);
+    }
+    
+    // Post-process and format data
+    this.postProcessData(data);
+    
+    console.log('Parsed AAMVA data:', data);
+    return data;
+  }
+
+  private parseFieldCodes(rawData: string, data: BarcodeData): void {
+    // Parse 3-letter field codes (DAC, DCS, etc.)
+    for (const [code, field] of Object.entries(this.fieldMapping)) {
+      const patterns = [
+        new RegExp(`${code}([^\\x1E\\x1F\\x1D\\x0A\\x0D]+)`, 'g'), // With separators
+        new RegExp(`${code}([A-Za-z\\s\\d\\.\\-]+?)(?=[A-Z]{3}|$)`, 'g'), // Until next field
+        new RegExp(`${code}(.{1,50}?)\\x1E`, 'g') // With record separator
+      ];
+      
+      for (const pattern of patterns) {
+        const match = pattern.exec(rawData);
+        if (match && match[1] && match[1].trim()) {
           data[field] = match[1].trim();
+          break;
         }
       }
     }
+  }
+
+  private parseAlternativeFormat(rawData: string, data: BarcodeData): void {
+    // Some states use different formats or delimiters
+    const lines = rawData.split(/[\x1E\x1F\x1D\n\r]+/);
     
-    // Format dates if present
+    for (const line of lines) {
+      if (line.length < 4) continue;
+      
+      const code = line.substring(0, 3);
+      const value = line.substring(3);
+      
+      if (this.fieldMapping[code] && value.trim()) {
+        data[this.fieldMapping[code]] = value.trim();
+      }
+    }
+  }
+
+  private parseCommonPatterns(rawData: string, data: BarcodeData): void {
+    // Fallback: Look for common patterns in the data
+    const patterns = [
+      { regex: /\b([A-Z]{2,20})\s+([A-Z]{2,20})\b/, firstName: 2, lastName: 1 }, // Last, First
+      { regex: /\b(\d{8})\b/, field: 'dateOfBirth' }, // MMDDYYYY or YYYYMMDD
+      { regex: /\b([A-Z]\d{7,15})\b/, field: 'licenseNumber' }, // License number pattern
+      { regex: /\b([A-Z]{2})\s*\d{5}/, field: 'state' } // State code
+    ];
+    
+    for (const pattern of patterns) {
+      const match = rawData.match(pattern.regex);
+      if (match) {
+        if (pattern.firstName && pattern.lastName) {
+          if (!data.firstName) data.firstName = match[pattern.firstName];
+          if (!data.lastName) data.lastName = match[pattern.lastName];
+        } else if (pattern.field && !data[pattern.field as keyof BarcodeData]) {
+          data[pattern.field as keyof BarcodeData] = match[1];
+        }
+      }
+    }
+  }
+
+  private postProcessData(data: BarcodeData): void {
+    // Format dates
     if (data.dateOfBirth) {
       data.dateOfBirth = this.formatDate(data.dateOfBirth);
     }
@@ -125,7 +387,18 @@ export class BarcodeDecoder {
       data.expirationDate = this.formatDate(data.expirationDate);
     }
     
-    return data;
+    // Clean up names
+    if (data.firstName) {
+      data.firstName = data.firstName.replace(/[^\w\s-']/g, '').trim();
+    }
+    if (data.lastName) {
+      data.lastName = data.lastName.replace(/[^\w\s-']/g, '').trim();
+    }
+    
+    // Validate and clean license number
+    if (data.licenseNumber) {
+      data.licenseNumber = data.licenseNumber.replace(/[^\w]/g, '');
+    }
   }
 
   private formatDate(dateString: string): string {
