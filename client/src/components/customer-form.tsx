@@ -230,7 +230,7 @@ export default function CustomerForm({ initialData, profilePhoto, signature, onS
                         <FormItem>
                           <FormLabel>Middle Name</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value ?? ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -324,7 +324,7 @@ export default function CustomerForm({ initialData, profilePhoto, signature, onS
                           <FormItem>
                             <FormLabel>Street Address</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input {...field} value={field.value ?? ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

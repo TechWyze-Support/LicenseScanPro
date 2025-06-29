@@ -87,8 +87,16 @@ export default function Home() {
       let barcodeData = null;
       if (backImage) {
         const result = await barcodeDecoder.decodeBarcode(backImage);
-        if (result.success) {
+        if (result.success && result.data) {
           barcodeData = result.data;
+          console.log('Barcode decoded successfully:', barcodeData);
+        } else {
+          console.warn('Barcode decoding failed:', result.error);
+          toast({
+            title: "Barcode not detected",
+            description: "Could not read PDF417 barcode. You can manually enter the information.",
+            variant: "default",
+          });
         }
       }
 

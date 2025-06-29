@@ -41,41 +41,53 @@ export class BarcodeDecoder {
     try {
       console.log('Starting barcode decode process...');
       
-      // Preprocess image for better barcode detection
-      const enhancedImageData = await this.preprocessImage(imageData);
+      // First try with original image
+      let result = await this.attemptDecode(imageData);
       
-      // Create image element from enhanced data URL
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = enhancedImageData;
-      });
-
-      console.log('Image loaded, attempting barcode decode...');
-
-      // Use ZXing's browser reader to decode from image element
-      const result = await this.reader.decodeFromImageElement(img);
+      // If that fails, try with preprocessed image
+      if (!result) {
+        console.log('First attempt failed, trying with enhanced image...');
+        const enhancedImageData = await this.preprocessImage(imageData);
+        result = await this.attemptDecode(enhancedImageData);
+      }
       
-      console.log('Raw barcode data:', result.getText());
-
-      // Parse the AAMVA data
-      const parsedData = this.parseAAMVAData(result.getText());
-      
-      return {
-        success: true,
-        data: parsedData,
-        confidence: 0.95
-      };
+      if (result) {
+        console.log('Raw barcode data:', result.getText());
+        const parsedData = this.parseAAMVAData(result.getText());
+        
+        return {
+          success: true,
+          data: parsedData,
+          confidence: 0.95
+        };
+      } else {
+        throw new Error('No barcode found in image');
+      }
 
     } catch (error) {
       console.error('Barcode decode error:', error);
       
-      // If barcode decoding fails, return an error
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Could not decode PDF417 barcode from image. Please ensure the license is clearly visible and try again.'
       };
+    }
+  }
+
+  private async attemptDecode(imageData: string): Promise<any> {
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      // Try decoding with ZXing
+      return await this.reader.decodeFromImageElement(img);
+    } catch (error) {
+      console.log('Decode attempt failed:', error);
+      return null;
     }
   }
 
