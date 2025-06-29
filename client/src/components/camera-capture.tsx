@@ -138,7 +138,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                 {/* License Guide Overlay */}
                 {isActive && !showPreview && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="border-2 border-white border-dashed rounded-lg w-80 h-48 flex items-center justify-center">
+                    <div className="border-2 border-white border-dashed rounded-lg w-96 h-64 flex items-center justify-center">
                       <p className="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded">
                         Position {captureMode} of license within this area
                       </p>
