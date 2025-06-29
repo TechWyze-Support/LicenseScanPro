@@ -386,7 +386,7 @@ export default function CustomerForm({ initialData, profilePhoto, signature, onS
                     disabled={createCustomerMutation.isPending}
                     className="bg-blue-700 hover:bg-blue-900"
                   >
-                    <SaveIcon className="h-4 w-4 mr-2" />
+                    <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
                     {createCustomerMutation.isPending ? 'Saving...' : 'Save Customer'}
                   </Button>
                 </div>
