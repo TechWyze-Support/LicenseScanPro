@@ -22,30 +22,89 @@ export function useCamera(): CameraHook {
   const startCamera = useCallback(async () => {
     try {
       setError(null);
+      console.log('Starting camera...');
       
       // Get available video devices
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setAvailableDevices(videoDevices);
+      console.log('Available video devices:', videoDevices);
+      
+      // If no device selected, prefer built-in camera over virtual cameras
+      let selectedDeviceId = currentDeviceId;
+      if (!selectedDeviceId && videoDevices.length > 0) {
+        // Prefer FaceTime, built-in, or integrated cameras over virtual ones
+        const preferredDevice = videoDevices.find(device => 
+          device.label.toLowerCase().includes('facetime') ||
+          device.label.toLowerCase().includes('built-in') ||
+          device.label.toLowerCase().includes('integrated')
+        );
+        selectedDeviceId = preferredDevice?.deviceId || videoDevices[0].deviceId;
+        setCurrentDeviceId(selectedDeviceId);
+        console.log('Auto-selected preferred camera:', selectedDeviceId, preferredDevice?.label);
+      }
+      
+      // Force switch to FaceTime camera if currently using OBS Virtual Camera
+      if (selectedDeviceId && videoDevices.length > 1) {
+        const currentDevice = videoDevices.find(d => d.deviceId === selectedDeviceId);
+        if (currentDevice?.label.toLowerCase().includes('obs') || currentDevice?.label.toLowerCase().includes('virtual')) {
+          const faceTimeDevice = videoDevices.find(device => 
+            device.label.toLowerCase().includes('facetime')
+          );
+          if (faceTimeDevice) {
+            selectedDeviceId = faceTimeDevice.deviceId;
+            setCurrentDeviceId(selectedDeviceId);
+            console.log('Switched from virtual camera to FaceTime:', selectedDeviceId);
+          }
+        }
+      }
       
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: currentDeviceId ? { exact: currentDeviceId } : undefined,
+          deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          facingMode: currentDeviceId ? undefined : 'environment'
+          facingMode: selectedDeviceId ? undefined : 'environment'
         },
         audio: false
       };
+      
+      console.log('Camera constraints:', constraints);
+      console.log('Selected device ID:', selectedDeviceId);
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+      console.log('Got media stream:', stream);
+      console.log('Stream active:', stream.active);
+      console.log('Video tracks:', stream.getVideoTracks());
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        console.log('Set video srcObject');
+        
+        // Force video to play
+        try {
+          await videoRef.current.play();
+          console.log('Video started playing');
+        } catch (playError) {
+          console.log('Video play error (expected):', playError);
+        }
+        
+        // Wait for video to load
+        await new Promise<void>((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => {
+              console.log('Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+              resolve();
+            };
+            // Fallback timeout
+            setTimeout(resolve, 2000);
+          }
+        });
       }
       
       setIsActive(true);
+      console.log('Camera started successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to access camera';
       setError(errorMessage);
@@ -83,17 +142,26 @@ export function useCamera(): CameraHook {
   }, [isActive]);
 
   const switchCamera = useCallback(async () => {
-    if (availableDevices.length <= 1) return;
+    if (availableDevices.length <= 1) {
+      console.log('No additional cameras to switch to');
+      return;
+    }
     
+    console.log('Switching camera...');
     const currentIndex = availableDevices.findIndex(device => device.deviceId === currentDeviceId);
     const nextIndex = (currentIndex + 1) % availableDevices.length;
     const nextDevice = availableDevices[nextIndex];
     
+    console.log('Switching from', currentDeviceId, 'to', nextDevice.deviceId, nextDevice.label);
+    
     stopCamera();
     setCurrentDeviceId(nextDevice.deviceId);
     
-    // Start camera with new device will be triggered by useEffect in component
-  }, [availableDevices, currentDeviceId, stopCamera]);
+    // Restart camera with new device
+    setTimeout(() => {
+      startCamera();
+    }, 200);
+  }, [availableDevices, currentDeviceId, stopCamera, startCamera]);
 
   return {
     isActive,
