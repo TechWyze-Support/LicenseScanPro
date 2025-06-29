@@ -105,7 +105,7 @@ This is a full-stack driver's license scanner application built with React, Node
 ## Changelog
 
 - June 29, 2025. Initial setup
-- June 29, 2025. Increased camera guide area from 320x192px to 384x256px for better license scanning resolution
+- June 29, 2025. Replaced license guide area with full-screen capture and 3-second countdown timer for optimal resolution
 
 ## User Preferences
 

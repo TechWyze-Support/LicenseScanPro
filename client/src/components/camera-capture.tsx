@@ -15,6 +15,8 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isCountingDown, setIsCountingDown] = useState(false);
   
   const { isActive, error, startCamera, stopCamera, captureImage, switchCamera, videoRef } = useCamera();
 
@@ -23,17 +25,35 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     return () => stopCamera();
   }, [startCamera, stopCamera]);
 
-  const handleCapture = () => {
-    const imageData = captureImage();
-    if (!imageData) return;
-
-    if (captureMode === 'front') {
-      setFrontImage(imageData);
-      setCaptureMode('back');
-    } else {
-      setBackImage(imageData);
-      setShowPreview(true);
-    }
+  const startCountdown = () => {
+    if (isCountingDown) return;
+    
+    setIsCountingDown(true);
+    setCountdown(3);
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          setTimeout(() => {
+            const imageData = captureImage();
+            if (imageData) {
+              if (captureMode === 'front') {
+                setFrontImage(imageData);
+                setCaptureMode('back');
+              } else {
+                setBackImage(imageData);
+                setShowPreview(true);
+              }
+            }
+            setCountdown(null);
+            setIsCountingDown(false);
+          }, 100);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const handleRetake = () => {
@@ -135,14 +155,21 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                   </div>
                 )}
                 
-                {/* License Guide Overlay */}
-                {isActive && !showPreview && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="border-2 border-white border-dashed rounded-lg w-96 h-64 flex items-center justify-center">
-                      <p className="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded">
-                        Position {captureMode} of license within this area
-                      </p>
+                {/* Countdown Overlay */}
+                {countdown !== null && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="text-white text-8xl font-bold">
+                      {countdown}
                     </div>
+                  </div>
+                )}
+                
+                {/* Instruction Overlay */}
+                {isActive && !showPreview && !isCountingDown && (
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+                    <p className="text-white text-lg bg-black bg-opacity-70 px-4 py-2 rounded-lg">
+                      Hold {captureMode} of license to fill screen, then tap capture
+                    </p>
                   </div>
                 )}
               </>
@@ -167,8 +194,8 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
           ) : (
             <>
               <Button
-                onClick={handleCapture}
-                disabled={!isActive}
+                onClick={startCountdown}
+                disabled={!isActive || isCountingDown}
                 size="lg"
                 className="bg-red-500 hover:bg-red-700 rounded-full px-8"
               >
