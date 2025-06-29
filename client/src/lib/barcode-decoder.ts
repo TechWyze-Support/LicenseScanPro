@@ -1,5 +1,5 @@
-// PDF417 barcode decoder utilities
-// Note: In a real implementation, you would use a library like zxing-js or pdf417-js
+// PDF417 barcode decoder utilities using ZXing library
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 export interface BarcodeData {
   firstName?: string;
@@ -35,44 +35,57 @@ export class BarcodeDecoder {
     'DAK': 'zipCode'
   };
 
+  private reader = new BrowserMultiFormatReader();
+
   async decodeBarcode(imageData: string): Promise<BarcodeDecodeResult> {
     try {
-      // In a real implementation, use a PDF417 decoder library
-      // For now, simulate barcode decoding with mock data
+      console.log('Starting barcode decode process...');
       
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
+      // Preprocess image for better barcode detection
+      const enhancedImageData = await this.preprocessImage(imageData);
       
-      // Simulate successful decode with mock data
-      const mockData: BarcodeData = {
-        firstName: 'John',
-        lastName: 'Doe',
-        middleName: 'Michael',
-        dateOfBirth: '1985-06-15',
-        licenseNumber: 'D12345678',
-        expirationDate: '2027-06-15',
-        address: '123 Main Street',
-        city: 'San Francisco',
-        state: 'CA',
-        zipCode: '94105'
-      };
+      // Create image element from enhanced data URL
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = enhancedImageData;
+      });
 
+      console.log('Image loaded, attempting barcode decode...');
+
+      // Use ZXing's browser reader to decode from image element
+      const result = await this.reader.decodeFromImageElement(img);
+      
+      console.log('Raw barcode data:', result.getText());
+
+      // Parse the AAMVA data
+      const parsedData = this.parseAAMVAData(result.getText());
+      
       return {
         success: true,
-        data: mockData,
-        confidence: 0.92
+        data: parsedData,
+        confidence: 0.95
       };
+
     } catch (error) {
+      console.error('Barcode decode error:', error);
+      
+      // If barcode decoding fails, return an error
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Barcode decoding failed'
+        error: error instanceof Error ? error.message : 'Could not decode PDF417 barcode from image. Please ensure the license is clearly visible and try again.'
       };
     }
   }
 
   private parseAAMVAData(rawData: string): BarcodeData {
     const data: BarcodeData = {};
-    const lines = rawData.split('\n');
     
+    // AAMVA data can be in various formats, try different parsing approaches
+    
+    // First, try line-by-line parsing for structured data
+    const lines = rawData.split(/[\n\r]+/);
     for (const line of lines) {
       const match = line.match(/^([A-Z]{3})(.+)$/);
       if (match) {
@@ -80,6 +93,17 @@ export class BarcodeDecoder {
         const field = this.fieldMapping[code];
         if (field) {
           data[field] = value.trim();
+        }
+      }
+    }
+    
+    // If that didn't work, try parsing as continuous string with field codes
+    if (Object.keys(data).length === 0) {
+      for (const [code, field] of Object.entries(this.fieldMapping)) {
+        const regex = new RegExp(code + '([^A-Z]{3})*?(?=[A-Z]{3}|$)', 'g');
+        const match = regex.exec(rawData);
+        if (match && match[1]) {
+          data[field] = match[1].trim();
         }
       }
     }
@@ -112,9 +136,48 @@ export class BarcodeDecoder {
   }
 
   async preprocessImage(imageData: string): Promise<string> {
-    // In a real implementation, enhance the image for better barcode reading
-    // This could include contrast adjustment, noise reduction, etc.
-    return imageData;
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return imageData;
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      // Get image data for processing
+      const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageDataObj.data;
+
+      // Enhance contrast and convert to grayscale for better barcode detection
+      for (let i = 0; i < data.length; i += 4) {
+        // Convert to grayscale
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        
+        // Enhance contrast
+        const enhanced = gray < 128 ? Math.max(0, gray - 30) : Math.min(255, gray + 30);
+        
+        data[i] = enhanced;     // R
+        data[i + 1] = enhanced; // G
+        data[i + 2] = enhanced; // B
+        // Alpha stays the same
+      }
+
+      // Put enhanced image data back
+      ctx.putImageData(imageDataObj, 0, 0);
+
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.warn('Image preprocessing failed, using original:', error);
+      return imageData;
+    }
   }
 }
 
