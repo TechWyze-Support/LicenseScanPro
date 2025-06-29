@@ -22,6 +22,37 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
   
   const { isActive, error, startCamera, stopCamera, captureImage, videoRef, availableDevices, currentDeviceId, selectCamera } = useCamera();
 
+  const startCountdown = () => {
+    if (isCountingDown) return;
+    
+    setIsCountingDown(true);
+    setCountdown(3);
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          setTimeout(() => {
+            const imageData = captureImage();
+            if (imageData) {
+              if (captureMode === 'front') {
+                setFrontImage(imageData);
+                setCaptureMode('back');
+              } else {
+                setBackImage(imageData);
+                setShowPreview(true);
+              }
+            }
+            setCountdown(null);
+            setIsCountingDown(false);
+          }, 100);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   useEffect(() => {
     startCamera();
     return () => stopCamera();
@@ -82,37 +113,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const interval = setInterval(detectLicenseInFrame, 1000); // Check every second
     return () => clearInterval(interval);
   }, [autoShutterEnabled, isActive, showPreview, isCountingDown, startCountdown]);
-
-  const startCountdown = () => {
-    if (isCountingDown) return;
-    
-    setIsCountingDown(true);
-    setCountdown(3);
-    
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer);
-          setTimeout(() => {
-            const imageData = captureImage();
-            if (imageData) {
-              if (captureMode === 'front') {
-                setFrontImage(imageData);
-                setCaptureMode('back');
-              } else {
-                setBackImage(imageData);
-                setShowPreview(true);
-              }
-            }
-            setCountdown(null);
-            setIsCountingDown(false);
-          }, 100);
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
 
   const handleRetake = () => {
     if (captureMode === 'front') {

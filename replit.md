@@ -106,6 +106,7 @@ This is a full-stack driver's license scanner application built with React, Node
 
 - June 29, 2025. Initial setup
 - June 29, 2025. Replaced license guide area with full-screen capture and 3-second countdown timer for optimal resolution
+- June 29, 2025. Added camera selection dropdown and auto-shutter detection using edge detection algorithms
 
 ## User Preferences
 
