@@ -54,17 +54,26 @@ export default function FileUpload({ onUpload, onClose }: FileUploadProps) {
 
     const preview = await createPreview(file);
     
+    // Apply automatic edge detection and cropping
+    const edgeResult = await edgeDetectionService.detectAndCropLicense(preview);
+    const processedPreview = edgeResult.success ? edgeResult.croppedImage! : preview;
+    
+    // Convert processed image back to File object
+    const response = await fetch(processedPreview);
+    const blob = await response.blob();
+    const processedFile = new File([blob], file.name, { type: file.type });
+    
     if (side === 'front') {
-      setFrontImage(file);
-      setFrontPreview(preview);
+      setFrontImage(processedFile);
+      setFrontPreview(processedPreview);
     } else {
-      setBackImage(file);
-      setBackPreview(preview);
+      setBackImage(processedFile);
+      setBackPreview(processedPreview);
     }
 
     toast({
-      title: "File uploaded",
-      description: `${side} image uploaded successfully`,
+      title: "File uploaded and cropped",
+      description: `${side} image processed with auto-crop ${edgeResult.success ? '✓' : '(crop failed)'}`,
     });
   };
 

@@ -239,7 +239,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                 {isActive && !showPreview && !isCountingDown && (
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
                     <p className="text-white text-lg bg-black bg-opacity-70 px-4 py-2 rounded-lg">
-                      Hold {captureMode} of license to fill screen, then tap capture
+                      Hold {captureMode} of license to fill screen - auto-crop enabled
                     </p>
                   </div>
                 )}
