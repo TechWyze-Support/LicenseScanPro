@@ -165,24 +165,16 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
           <h1 className="text-lg font-semibold">Barcode Scanner</h1>
         </div>
         <div className="flex items-center space-x-2">
-          {/* Camera Selection */}
           {availableDevices.length > 1 && (
-            <Select
-              value={currentDeviceId || ''}
-              onValueChange={selectCamera}
+            <Button
+              onClick={switchCamera}
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-gray-800"
               disabled={isScanning}
             >
-              <SelectTrigger className="w-40 bg-gray-800 border-gray-600 text-white">
-                <SelectValue placeholder="Select camera" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableDevices.map((device) => (
-                  <SelectItem key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <ArrowPathIcon className="h-5 w-5" />
+            </Button>
           )}
           <Button
             onClick={handleClose}
@@ -206,45 +198,56 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
           </div>
         ) : (
           <>
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              autoPlay
-              playsInline
-              muted
-            />
+            {/* Show frozen frame if available, otherwise live video */}
+            {frozenFrame && scanStatus === 'frozen' ? (
+              <img
+                src={frozenFrame}
+                className="w-full h-full object-cover"
+                alt="Frozen frame with detected barcode"
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+                muted
+              />
+            )}
             
             {/* Barcode Scanning Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative">
-                {/* Scanning Frame */}
-                <div className={`w-80 h-32 border-4 rounded-lg ${
-                  scanStatus === 'success' ? 'border-green-500' : 
-                  scanStatus === 'error' ? 'border-red-500' : 
-                  isScanning ? 'border-blue-500 animate-pulse' : 'border-white'
-                }`}>
-                  {/* Corner guides */}
-                  <div className="absolute -top-1 -left-1 w-6 h-6 border-l-4 border-t-4 border-white"></div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 border-r-4 border-t-4 border-white"></div>
-                  <div className="absolute -bottom-1 -left-1 w-6 h-6 border-l-4 border-b-4 border-white"></div>
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 border-r-4 border-b-4 border-white"></div>
+            {scanStatus !== 'frozen' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative">
+                  {/* Scanning Frame */}
+                  <div className={`w-80 h-32 border-4 rounded-lg ${
+                    scanStatus === 'success' ? 'border-green-500' : 
+                    scanStatus === 'error' ? 'border-red-500' : 
+                    isScanning ? 'border-blue-500 animate-pulse' : 'border-white'
+                  }`}>
+                    {/* Corner guides */}
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-l-4 border-t-4 border-white"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-r-4 border-t-4 border-white"></div>
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-l-4 border-b-4 border-white"></div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-r-4 border-b-4 border-white"></div>
+                    
+                    {/* Scanning line animation */}
+                    {isScanning && (
+                      <div className="absolute inset-0 overflow-hidden rounded-lg">
+                        <div className="w-full h-0.5 bg-blue-500 animate-bounce opacity-75"></div>
+                      </div>
+                    )}
+                  </div>
                   
-                  {/* Scanning line animation */}
-                  {isScanning && (
-                    <div className="absolute inset-0 overflow-hidden rounded-lg">
-                      <div className="w-full h-0.5 bg-blue-500 animate-bounce opacity-75"></div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Instructions */}
-                <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
-                  <p className="text-white text-sm bg-black bg-opacity-50 px-3 py-2 rounded-lg">
-                    Position the license barcode within the frame
-                  </p>
+                  {/* Instructions */}
+                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
+                    <p className="text-white text-sm bg-black bg-opacity-50 px-3 py-2 rounded-lg">
+                      Position the license barcode within the frame
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </>
         )}
       </div>
@@ -253,15 +256,58 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
       <div className="p-4 bg-black text-white">
         <div className="text-center mb-4">
           <p className={`text-sm ${
-            scanStatus === 'success' ? 'text-green-400' : 
+            scanStatus === 'success' || scanStatus === 'frozen' ? 'text-green-400' : 
             scanStatus === 'error' ? 'text-red-400' : 'text-gray-300'
           }`}>
             {getScanStatusMessage()}
           </p>
         </div>
+
+        {/* Barcode Selection */}
+        {scanStatus === 'frozen' && detectedBarcodes.length > 0 && (
+          <div className="mb-4 space-y-3">
+            <div className="text-center text-sm text-gray-300">
+              Detected Barcode Data:
+            </div>
+            <div className="bg-gray-800 rounded-lg p-3">
+              <div className="text-xs text-gray-400 mb-2">Raw Data:</div>
+              <div className="font-mono text-sm text-green-400 break-all">
+                {detectedBarcodes[selectedBarcodeIndex]?.rawData}
+              </div>
+              {detectedBarcodes[selectedBarcodeIndex]?.data && Object.keys(detectedBarcodes[selectedBarcodeIndex].data).length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs text-gray-400 mb-2">Parsed Fields:</div>
+                  <div className="text-xs text-blue-400">
+                    {Object.entries(detectedBarcodes[selectedBarcodeIndex].data)
+                      .filter(([_, value]) => value)
+                      .map(([key, value]) => `${key}: ${value}`)
+                      .join(', ')}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         <div className="flex justify-center space-x-4">
-          {!isScanning && scanStatus !== 'success' ? (
+          {scanStatus === 'frozen' ? (
+            <>
+              <Button
+                onClick={confirmBarcodeSelection}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full font-semibold"
+              >
+                <CheckIcon className="h-5 w-5 mr-2" />
+                Use This Barcode
+              </Button>
+              <Button
+                onClick={resumeScanning}
+                variant="outline"
+                className="border-gray-600 text-white hover:bg-gray-800 px-6 py-2 rounded-full"
+              >
+                Scan Again
+              </Button>
+            </>
+          ) : !isScanning && scanStatus !== 'success' ? (
             <Button
               onClick={startBarcodeScanning}
               disabled={!isActive || cameraError !== null}
