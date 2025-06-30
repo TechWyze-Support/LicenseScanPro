@@ -10,6 +10,7 @@ import Header from '@/components/header';
 import CameraCapture from '@/components/camera-capture';
 import FileUpload from '@/components/file-upload';
 import CustomerForm from '@/components/customer-form';
+import BarcodeCamera from '@/components/barcode-camera';
 import { 
   CameraIcon, 
   DocumentArrowUpIcon, 
@@ -23,7 +24,7 @@ import { faceDetectionService } from '@/lib/face-detection';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@shared/schema';
 
-type ScanMode = 'none' | 'camera' | 'upload';
+type ScanMode = 'none' | 'camera' | 'upload' | 'barcode';
 type ProcessingStep = 'idle' | 'uploading' | 'decoding' | 'extracting' | 'complete';
 
 export default function Home() {
@@ -62,6 +63,20 @@ export default function Home() {
     const backImage = backFile ? await fileToDataURL(backFile) : null;
 
     await processImages(frontImage, backImage, face, signature, barcode, frontImage || undefined, backImage || undefined);
+  };
+
+  const handleBarcodeDetected = (barcodeData: any) => {
+    console.log('Barcode data detected:', barcodeData);
+    
+    // Set the barcode data and go directly to customer form
+    setExtractedData(barcodeData);
+    setShowCustomerForm(true);
+    setScanMode('none');
+    
+    toast({
+      title: "Barcode scanned successfully",
+      description: "License information extracted from barcode",
+    });
   };
 
   const fileToDataURL = (file: File): Promise<string> => {
@@ -277,7 +292,7 @@ export default function Home() {
                 <h2 className="text-2xl font-semibold text-gray-900 mb-2">Scan Driver's License</h2>
                 <p className="text-gray-600 mb-6">Choose how you'd like to capture the license information</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   {/* Camera Scan Button */}
                   <Button
                     onClick={() => setScanMode('camera')}
@@ -304,6 +319,22 @@ export default function Home() {
                     </div>
                     <h3 className="text-lg font-semibold mb-1">Upload License</h3>
                     <p className="text-sm text-gray-600 text-center">Upload photos of front and back of license</p>
+                  </Button>
+
+                  {/* Barcode Scan Button */}
+                  <Button
+                    onClick={() => setScanMode('barcode')}
+                    disabled={isProcessing}
+                    className="group relative bg-green-50 hover:bg-green-100 border-2 border-green-200 hover:border-green-300 rounded-lg p-6 h-auto flex flex-col items-center transition-all duration-200 text-gray-900"
+                    variant="outline"
+                  >
+                    <div className="bg-green-700 text-white rounded-full p-3 mb-3 group-hover:bg-green-900 transition-colors">
+                      <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h4M4 4h4m0 0V4m0 0h4m0 0v1M4 20h4m0 0v-1m0 0h4m0 0V20" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-1">Barcode Only</h3>
+                    <p className="text-sm text-gray-600 text-center">Scan just the barcode to extract license data</p>
                   </Button>
                 </div>
 
