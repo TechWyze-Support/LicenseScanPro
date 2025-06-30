@@ -142,8 +142,14 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
 
   const handleSubmit = () => {
     if (frontImage && backImage) {
-      onCapture(frontImage, backImage);
+      setShowManualCrop(true);
     }
+  };
+
+  const handleCropsComplete = (crops: CroppedImages) => {
+    // Pass the cropped images to the parent component
+    onCapture(crops.frontLicense, crops.backLicense);
+    setShowManualCrop(false);
   };
 
   const handleReset = () => {
@@ -152,6 +158,17 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     setCaptureMode('front');
     setShowPreview(false);
   };
+
+  if (showManualCrop && frontImage && backImage) {
+    return (
+      <ManualCrop
+        frontImage={frontImage}
+        backImage={backImage}
+        onCropsComplete={handleCropsComplete}
+        onClose={() => setShowManualCrop(false)}
+      />
+    );
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -243,7 +260,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                 {isActive && !showPreview && !isCountingDown && (
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
                     <p className="text-white text-lg bg-black bg-opacity-70 px-4 py-2 rounded-lg">
-                      Hold {captureMode} of license to fill screen - auto-crop enabled
+                      Hold {captureMode} of license to fill screen - manual crop next
                     </p>
                   </div>
                 )}
@@ -297,24 +314,20 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                 Retake {captureMode}
               </Button>
               <Button onClick={handleSubmit} className="bg-blue-700 hover:bg-blue-900">
-                Process Images
+                Manual Crop & Extract
               </Button>
             </>
           ) : (
             <>
               <Button
-                onClick={async () => {
+                onClick={() => {
                   const imageData = captureImage();
                   if (imageData) {
-                    // Apply automatic edge detection and cropping
-                    const edgeResult = await edgeDetectionService.detectAndCropLicense(imageData);
-                    const processedImage = edgeResult.success ? edgeResult.croppedImage! : imageData;
-                    
                     if (captureMode === 'front') {
-                      setFrontImage(processedImage);
+                      setFrontImage(imageData);
                       setCaptureMode('back');
                     } else {
-                      setBackImage(processedImage);
+                      setBackImage(imageData);
                       setShowPreview(true);
                     }
                   }

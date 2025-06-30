@@ -5,11 +5,18 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { XMarkIcon, PhotoIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { useToast } from '@/hooks/use-toast';
-import { edgeDetectionService } from '@/lib/edge-detection';
+import ManualCrop from './manual-crop';
 
 interface FileUploadProps {
   onUpload: (frontImage: File | null, backImage: File | null) => void;
   onClose: () => void;
+}
+
+interface CroppedImages {
+  face: string;
+  signature: string;
+  frontLicense: string;
+  backLicense: string;
 }
 
 export default function FileUpload({ onUpload, onClose }: FileUploadProps) {
@@ -20,6 +27,7 @@ export default function FileUpload({ onUpload, onClose }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState<'front' | 'back' | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [showManualCrop, setShowManualCrop] = useState(false);
   
   const { toast } = useToast();
 
@@ -54,26 +62,17 @@ export default function FileUpload({ onUpload, onClose }: FileUploadProps) {
 
     const preview = await createPreview(file);
     
-    // Apply automatic edge detection and cropping
-    const edgeResult = await edgeDetectionService.detectAndCropLicense(preview);
-    const processedPreview = edgeResult.success ? edgeResult.croppedImage! : preview;
-    
-    // Convert processed image back to File object
-    const response = await fetch(processedPreview);
-    const blob = await response.blob();
-    const processedFile = new File([blob], file.name, { type: file.type });
-    
     if (side === 'front') {
-      setFrontImage(processedFile);
-      setFrontPreview(processedPreview);
+      setFrontImage(file);
+      setFrontPreview(preview);
     } else {
-      setBackImage(processedFile);
-      setBackPreview(processedPreview);
+      setBackImage(file);
+      setBackPreview(preview);
     }
 
     toast({
-      title: "File uploaded and cropped",
-      description: `${side} image processed with auto-crop ${edgeResult.success ? '✓' : '(crop failed)'}`,
+      title: "File uploaded",
+      description: `${side} image uploaded successfully`,
     });
   };
 
