@@ -12,6 +12,10 @@ export interface BarcodeData {
   city?: string;
   state?: string;
   zipCode?: string;
+  gender?: string;
+  documentDiscriminator?: string;
+  country?: string;
+  nameSuffix?: string;
 }
 
 export interface BarcodeDecodeResult {
@@ -285,26 +289,72 @@ export class BarcodeDecoder {
     
     console.log('Parsing AAMVA data from:', rawData.substring(0, 100) + '...');
     
-    // AAMVA PDF417 data formats vary by state but generally follow patterns
-    // Try multiple parsing strategies for robustness
-    
-    // Strategy 1: Parse field codes with delimiters
-    this.parseFieldCodes(rawData, data);
-    
-    // Strategy 2: If limited data, try alternative parsing
-    if (Object.keys(data).length < 3) {
-      this.parseAlternativeFormat(rawData, data);
+    try {
+      // Skip header up to "DL" or "ID"
+      let start = -1;
+      if (rawData.includes("DL")) {
+        start = rawData.indexOf("DL");
+      } else if (rawData.includes("ID")) {
+        start = rawData.indexOf("ID");
+      } else {
+        console.warn('No DL/ID header found, trying to parse entire string');
+        start = 0;
+      }
+
+      const payload = rawData.substring(start);
+      console.log('Payload after header:', payload.substring(0, 100) + '...');
+
+      // Enhanced AAMVA field codes mapping
+      const aamvaFields: Record<string, keyof BarcodeData> = {
+        "DAQ": "licenseNumber",
+        "DCS": "lastName", 
+        "DCT": "lastName", // Alternative
+        "DAC": "firstName",
+        "DAD": "middleName",
+        "DBB": "dateOfBirth",
+        "DBC": "gender",
+        "DBA": "expirationDate", 
+        "DAG": "address",
+        "DAI": "city",
+        "DAJ": "state",
+        "DAK": "zipCode",
+        "DCF": "documentDiscriminator",
+        "DCG": "country",
+        "DDE": "nameSuffix"
+      };
+
+      // Parse each field
+      for (const [code, fieldName] of Object.entries(aamvaFields)) {
+        const index = payload.indexOf(code);
+        if (index !== -1) {
+          // Find the next field code or end of string
+          let nextIndex = payload.length;
+          for (const otherCode of Object.keys(aamvaFields)) {
+            if (otherCode !== code) {
+              const otherIndex = payload.indexOf(otherCode, index + 3);
+              if (otherIndex !== -1 && otherIndex < nextIndex) {
+                nextIndex = otherIndex;
+              }
+            }
+          }
+          
+          // Extract field value
+          const value = payload.substring(index + 3, nextIndex).trim();
+          if (value && value.length > 0) {
+            data[fieldName] = value;
+          }
+        }
+      }
+      
+      // Post-process the data
+      this.postProcessData(data);
+      
+      console.log('Parsed AAMVA data:', data);
+      
+    } catch (error) {
+      console.warn('AAMVA parsing error:', error);
     }
     
-    // Strategy 3: Extract common patterns even without field codes
-    if (Object.keys(data).length < 3) {
-      this.parseCommonPatterns(rawData, data);
-    }
-    
-    // Post-process and format data
-    this.postProcessData(data);
-    
-    console.log('Parsed AAMVA data:', data);
     return data;
   }
 

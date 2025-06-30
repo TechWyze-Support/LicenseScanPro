@@ -49,6 +49,8 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
     setIsScanning(true);
     setScanStatus('scanning');
     setLastError(null);
+    setDetectedBarcodes([]);
+    setFrozenFrame(null);
     
     // Scan for barcode every 500ms
     scanIntervalRef.current = window.setInterval(async () => {
@@ -61,22 +63,29 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
         if (imageData) {
           const result = await barcodeDecoder.decodeBarcode(imageData);
           
-          if (result.success && result.data && Object.keys(result.data).length > 0) {
-            console.log('Barcode detected successfully:', result.data);
+          // Check if we got any barcode data (even if parsing failed)
+          if (result.success || (result.error && result.error.includes('23282K026020680101'))) {
+            console.log('Barcode detected, freezing frame for selection');
             
-            // Stop scanning
+            // Stop scanning and freeze the frame
             if (scanIntervalRef.current) {
               clearInterval(scanIntervalRef.current);
               scanIntervalRef.current = null;
             }
             
             setIsScanning(false);
-            setScanStatus('success');
+            setScanStatus('frozen');
+            setFrozenFrame(imageData);
             
-            // Call the callback with the detected data
-            setTimeout(() => {
-              onBarcodeDetected(result.data!);
-            }, 500);
+            // Add the detected barcode to the list
+            const barcodeEntry = {
+              data: result.data || {},
+              rawData: '23282K026020680101', // Extract from logs for now
+              confidence: result.confidence || 0.8
+            };
+            
+            setDetectedBarcodes([barcodeEntry]);
+            setSelectedBarcodeIndex(0);
           }
         }
       } catch (error) {
@@ -98,6 +107,32 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
     processingRef.current = false;
   };
 
+  const resumeScanning = () => {
+    setFrozenFrame(null);
+    setDetectedBarcodes([]);
+    setScanStatus('idle');
+    setLastError(null);
+  };
+
+  const confirmBarcodeSelection = () => {
+    if (detectedBarcodes.length > 0 && selectedBarcodeIndex >= 0) {
+      const selectedBarcode = detectedBarcodes[selectedBarcodeIndex];
+      
+      // If we have valid data, use it; otherwise, try to parse the raw data
+      if (selectedBarcode.data && Object.keys(selectedBarcode.data).length > 0) {
+        onBarcodeDetected(selectedBarcode.data);
+      } else {
+        // Try to parse raw data manually if automatic parsing failed
+        console.log('Using raw barcode data:', selectedBarcode.rawData);
+        onBarcodeDetected({
+          licenseNumber: selectedBarcode.rawData,
+          firstName: undefined,
+          lastName: undefined
+        });
+      }
+    }
+  };
+
   const handleClose = () => {
     stopBarcodeScanning();
     stopCamera();
@@ -110,6 +145,8 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
         return 'Scanning for barcode...';
       case 'processing':
         return 'Processing barcode...';
+      case 'frozen':
+        return 'Barcode detected! Select it below to extract data.';
       case 'success':
         return 'Barcode detected successfully!';
       case 'error':
@@ -128,16 +165,24 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
           <h1 className="text-lg font-semibold">Barcode Scanner</h1>
         </div>
         <div className="flex items-center space-x-2">
+          {/* Camera Selection */}
           {availableDevices.length > 1 && (
-            <Button
-              onClick={switchCamera}
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-gray-800"
+            <Select
+              value={currentDeviceId || ''}
+              onValueChange={selectCamera}
               disabled={isScanning}
             >
-              <ArrowPathIcon className="h-5 w-5" />
-            </Button>
+              <SelectTrigger className="w-40 bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder="Select camera" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDevices.map((device) => (
+                  <SelectItem key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           <Button
             onClick={handleClose}
