@@ -17,6 +17,7 @@ interface CroppedImages {
   signature: string;
   frontLicense: string;
   backLicense: string;
+  barcode: string;
 }
 
 export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
