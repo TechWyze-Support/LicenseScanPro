@@ -204,7 +204,7 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         }));
         
         // Store the processed crop image
-        setCompletedCrops(prev => ({
+        setCompletedCrops((prev: Record<CropType, string>) => ({
           ...prev,
           [currentCropType]: croppedImage
         }));
@@ -371,10 +371,10 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         {/* Instructions */}
         <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
           <p className="font-medium">Instructions:</p>
-          <p>• Click and drag to select the <span className="font-medium">{cropTypeLabels[currentCropType]}</span></p>
-          <p>• Use rotation slider to correct skew</p>
-          <p>• Switch between Front/Back images as needed</p>
-          <p>• Complete all crops before finishing</p>
+          <p>• Currently cropping: <span className="font-medium text-blue-700">{cropTypeLabels[currentCropType]}</span></p>
+          <p>• Click and drag to select the area, then release to process</p>
+          <p>• Auto-advances to next crop type when completed</p>
+          <p>• Adjust rotation if needed to correct skew</p>
         </div>
 
         {/* Canvas */}
@@ -390,17 +390,19 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         </div>
 
         {/* Progress */}
-        <div className="grid grid-cols-4 gap-2 text-sm">
+        <div className="grid grid-cols-5 gap-2 text-sm">
           {Object.entries(cropTypeLabels).map(([key, label]) => (
             <div
               key={key}
-              className={`p-2 text-center rounded ${
-                cropAreas[key as CropType] 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-600'
+              className={`p-2 text-center rounded border-2 ${
+                completedCrops[key as CropType] 
+                  ? 'bg-green-100 text-green-800 border-green-300' 
+                  : key === currentCropType
+                  ? 'bg-blue-100 text-blue-800 border-blue-300'
+                  : 'bg-gray-100 text-gray-600 border-gray-200'
               }`}
             >
-              {label} {cropAreas[key as CropType] ? '✓' : '○'}
+              {label} {completedCrops[key as CropType] ? '✓' : key === currentCropType ? '→' : '○'}
             </div>
           ))}
         </div>
@@ -409,13 +411,24 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         <div className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => setCropAreas({
-              face: null,
-              signature: null,
-              frontLicense: null,
-              backLicense: null,
-              barcode: null
-            })}
+            onClick={() => {
+              setCropAreas({
+                face: null,
+                signature: null,
+                frontLicense: null,
+                backLicense: null,
+                barcode: null
+              });
+              setCompletedCrops({
+                face: '',
+                signature: '',
+                frontLicense: '',
+                backLicense: '',
+                barcode: ''
+              });
+              setCurrentCropType('face');
+              setCurrentImage('front');
+            }}
           >
             Clear All
           </Button>
