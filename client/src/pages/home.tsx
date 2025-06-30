@@ -52,13 +52,13 @@ export default function Home() {
     await processImages(frontImage, backImage, face, signature, barcode);
   };
 
-  const handleFileUpload = async (frontFile: File | null, backFile: File | null) => {
+  const handleFileUpload = async (frontFile: File | null, backFile: File | null, face?: string, signature?: string, barcode?: string) => {
     if (!frontFile && !backFile) return;
 
     const frontImage = frontFile ? await fileToDataURL(frontFile) : null;
     const backImage = backFile ? await fileToDataURL(backFile) : null;
 
-    await processImages(frontImage, backImage);
+    await processImages(frontImage, backImage, face, signature, barcode);
   };
 
   const fileToDataURL = (file: File): Promise<string> => {
@@ -122,7 +122,7 @@ export default function Home() {
           if (!preCroppedSignature) {
             const licenseState = barcodeData?.state || 'CA';
             const signatureResult = await faceDetectionService.extractSignature(frontImage, licenseState);
-            if (signatureResult.success) {
+            if (signatureResult.success && signatureResult.croppedImage) {
               extractedSignature = signatureResult.croppedImage;
             }
           }

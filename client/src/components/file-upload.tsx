@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import ManualCrop from './manual-crop';
 
 interface FileUploadProps {
-  onUpload: (frontImage: File | null, backImage: File | null) => void;
+  onUpload: (frontImage: File | null, backImage: File | null, face?: string, signature?: string, barcode?: string) => void;
   onClose: () => void;
 }
 
@@ -138,6 +138,18 @@ export default function FileUpload({ onUpload, onClose }: FileUploadProps) {
     setUploadProgress(0);
     setError(null);
   };
+
+  // Show manual crop tool if enabled
+  if (showManualCrop && frontPreview && backPreview) {
+    return (
+      <ManualCrop
+        frontImage={frontPreview}
+        backImage={backPreview}
+        onCropsComplete={handleCropsComplete}
+        onClose={() => setShowManualCrop(false)}
+      />
+    );
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto">

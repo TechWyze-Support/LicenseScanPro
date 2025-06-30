@@ -3,7 +3,7 @@
 
 export interface FaceDetectionResult {
   success: boolean;
-  croppedImage?: string;
+  croppedImage?: string | null;
   confidence?: number;
   error?: string;
 }
