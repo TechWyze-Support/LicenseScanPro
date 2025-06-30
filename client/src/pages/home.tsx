@@ -61,7 +61,7 @@ export default function Home() {
     const frontImage = frontFile ? await fileToDataURL(frontFile) : null;
     const backImage = backFile ? await fileToDataURL(backFile) : null;
 
-    await processImages(frontImage, backImage, face, signature, barcode, frontImage, backImage);
+    await processImages(frontImage, backImage, face, signature, barcode, frontImage || undefined, backImage || undefined);
   };
 
   const fileToDataURL = (file: File): Promise<string> => {
@@ -140,6 +140,9 @@ export default function Home() {
       setExtractedData(barcodeData);
       setProfilePhoto(extractedPhoto ?? null);
       setSignature(extractedSignature ?? null);
+      setFrontLicense(preCroppedFrontLicense ?? null);
+      setBackLicense(preCroppedBackLicense ?? null);
+      setBarcode(preCroppedBarcode ?? null);
       setShowCustomerForm(true);
 
       // Only show success message if we actually extracted barcode data
@@ -174,6 +177,9 @@ export default function Home() {
     setExtractedData(null);
     setProfilePhoto(null);
     setSignature(null);
+    setFrontLicense(null);
+    setBackLicense(null);
+    setBarcode(null);
     setProcessingProgress(0);
     
     toast({
@@ -219,6 +225,9 @@ export default function Home() {
             initialData={extractedData}
             profilePhoto={profilePhoto || undefined}
             signature={signature || undefined}
+            frontLicense={frontLicense || undefined}
+            backLicense={backLicense || undefined}
+            barcode={barcode || undefined}
             onSave={handleCustomerSaved}
           />
         </main>
