@@ -149,7 +149,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
 
   const handleCropsComplete = (crops: CroppedImages) => {
     // Pass the cropped images to the parent component
-    onCapture(crops.frontLicense, crops.backLicense);
+    onCapture(crops.frontLicense, crops.backLicense, crops.face, crops.signature, crops.barcode);
     setShowManualCrop(false);
   };
 

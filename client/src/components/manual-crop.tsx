@@ -102,9 +102,9 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     ctx.drawImage(image, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
     ctx.restore();
 
-    // Draw all existing crop areas
+    // Draw only crop areas that belong to the current image
     Object.entries(cropAreas).forEach(([type, area]) => {
-      if (area) {
+      if (area && requiredImage[type as CropType] === currentImage) {
         drawCropArea(ctx, area, type as CropType, type === currentCropType);
       }
     });
