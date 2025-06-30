@@ -192,7 +192,8 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
 
   const handleMouseUp = () => {
     if (tempCrop && tempCrop.width > 10 && tempCrop.height > 10) {
-      // Immediately process this crop
+      // Immediately process this crop using the correct source image
+      const sourceImage = requiredImage[currentCropType] === 'front' ? frontImage : backImage;
       const currentImg = new Image();
       currentImg.onload = () => {
         const croppedImage = extractCrop(currentImg, tempCrop);
@@ -212,7 +213,7 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         // Auto-advance to next crop type
         advanceToNextCrop();
       };
-      currentImg.src = currentImage === 'front' ? frontImage : backImage;
+      currentImg.src = sourceImage;
     }
     setIsDrawing(false);
     setTempCrop(null);
