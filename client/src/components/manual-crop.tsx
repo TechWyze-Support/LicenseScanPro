@@ -20,11 +20,12 @@ interface ManualCropProps {
     signature: string;
     frontLicense: string;
     backLicense: string;
+    barcode: string;
   }) => void;
   onClose: () => void;
 }
 
-type CropType = 'face' | 'signature' | 'frontLicense' | 'backLicense';
+type CropType = 'face' | 'signature' | 'frontLicense' | 'backLicense' | 'barcode';
 
 export default function ManualCrop({ frontImage, backImage, onCropsComplete, onClose }: ManualCropProps) {
   const [currentCropType, setCurrentCropType] = useState<CropType>('face');
@@ -34,7 +35,8 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     face: null,
     signature: null,
     frontLicense: null,
-    backLicense: null
+    backLicense: null,
+    barcode: null
   });
   const [rotation, setRotation] = useState(0);
   const [tempCrop, setTempCrop] = useState<CropArea | null>(null);
@@ -85,7 +87,8 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
       face: isActive ? '#ff0000' : '#ff4444',
       signature: isActive ? '#00ff00' : '#44ff44',
       frontLicense: isActive ? '#0066ff' : '#4488ff',
-      backLicense: isActive ? '#ffaa00' : '#ffcc44'
+      backLicense: isActive ? '#ffaa00' : '#ffcc44',
+      barcode: isActive ? '#ff00ff' : '#ff44ff'
     };
 
     // Ensure stroke properties are set correctly
@@ -223,7 +226,8 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         face: cropAreas.face ? extractCrop(frontImg, cropAreas.face) : '',
         signature: cropAreas.signature ? extractCrop(frontImg, cropAreas.signature) : '',
         frontLicense: cropAreas.frontLicense ? extractCrop(frontImg, cropAreas.frontLicense) : frontImage,
-        backLicense: cropAreas.backLicense ? extractCrop(backImg, cropAreas.backLicense) : backImage
+        backLicense: cropAreas.backLicense ? extractCrop(backImg, cropAreas.backLicense) : backImage,
+        barcode: cropAreas.barcode ? extractCrop(backImg, cropAreas.barcode) : ''
       };
       
       onCropsComplete(crops);
@@ -252,14 +256,16 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     face: 'Face Photo',
     signature: 'Signature',
     frontLicense: 'Front License',
-    backLicense: 'Back License'
+    backLicense: 'Back License',
+    barcode: 'Barcode'
   };
 
   const requiredImage = {
     face: 'front',
     signature: 'front',
     frontLicense: 'front',
-    backLicense: 'back'
+    backLicense: 'back',
+    barcode: 'back'
   };
 
   return (
@@ -375,7 +381,8 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
               face: null,
               signature: null,
               frontLicense: null,
-              backLicense: null
+              backLicense: null,
+              barcode: null
             })}
           >
             Clear All
