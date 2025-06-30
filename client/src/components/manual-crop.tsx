@@ -269,6 +269,31 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
       );
     }
 
+    // Apply grayscale conversion for barcode images to improve contrast
+    if (currentCropType === 'barcode') {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Convert to grayscale using luminance formula
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Calculate grayscale value using luminance formula
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        
+        // Set R, G, B to the same gray value
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+        // Alpha channel (data[i + 3]) remains unchanged
+      }
+      
+      // Put the modified image data back to canvas
+      ctx.putImageData(imageData, 0, 0);
+    }
+
     return canvas.toDataURL('image/jpeg', 0.9);
   };
 

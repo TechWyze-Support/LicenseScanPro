@@ -11,6 +11,44 @@ interface BarcodeCameraProps {
   onClose: () => void;
 }
 
+// Convert image to grayscale for better barcode contrast
+const convertToGrayscale = (imageData: string): string => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return imageData;
+
+  try {
+    // Create image from data URL
+    const tempImg = new Image();
+    tempImg.src = imageData;
+    
+    // If image loads synchronously (cached), process it
+    if (tempImg.complete) {
+      canvas.width = tempImg.width;
+      canvas.height = tempImg.height;
+      ctx.drawImage(tempImg, 0, 0);
+      
+      const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageDataObj.data;
+      
+      // Convert to grayscale
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+      
+      ctx.putImageData(imageDataObj, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.9);
+    }
+  } catch (error) {
+    console.log('Grayscale conversion failed, using original image:', error);
+  }
+  
+  return imageData; // Fallback to original image if conversion fails
+};
+
 export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCameraProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'processing' | 'success' | 'error' | 'frozen'>('idle');
@@ -61,7 +99,9 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
       try {
         const imageData = captureImage();
         if (imageData) {
-          const result = await barcodeDecoder.decodeBarcode(imageData);
+          // Apply grayscale preprocessing for better barcode contrast
+          const grayscaleImageData = convertToGrayscale(imageData);
+          const result = await barcodeDecoder.decodeBarcode(grayscaleImageData);
           
           // Check if we got any barcode data (even if parsing failed)
           if (result.success || (result.error && result.error.includes('23282K026020680101'))) {
@@ -139,14 +179,14 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
     onClose();
   };
 
-  const getScanStatusMessage = () => {
+  const getStatusMessage = () => {
     switch (scanStatus) {
       case 'scanning':
         return 'Scanning for barcode...';
-      case 'processing':
-        return 'Processing barcode...';
       case 'frozen':
-        return 'Barcode detected! Select it below to extract data.';
+        return 'Barcode detected! Confirm to use or scan again.';
+      case 'processing':
+        return 'Processing barcode data...';
       case 'success':
         return 'Barcode detected successfully!';
       case 'error':
@@ -225,26 +265,62 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
                     scanStatus === 'error' ? 'border-red-500' : 
                     isScanning ? 'border-blue-500 animate-pulse' : 'border-white'
                   }`}>
-                    {/* Corner guides */}
-                    <div className="absolute -top-1 -left-1 w-6 h-6 border-l-4 border-t-4 border-white"></div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 border-r-4 border-t-4 border-white"></div>
-                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-l-4 border-b-4 border-white"></div>
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-r-4 border-b-4 border-white"></div>
-                    
-                    {/* Scanning line animation */}
-                    {isScanning && (
-                      <div className="absolute inset-0 overflow-hidden rounded-lg">
-                        <div className="w-full h-0.5 bg-blue-500 animate-bounce opacity-75"></div>
-                      </div>
-                    )}
+                    <div className="absolute -top-8 left-0 right-0 text-center">
+                      <p className="text-white text-sm font-medium bg-black bg-opacity-50 px-2 py-1 rounded">
+                        PDF417 Barcode Area
+                      </p>
+                    </div>
                   </div>
-                  
-                  {/* Instructions */}
-                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
-                    <p className="text-white text-sm bg-black bg-opacity-50 px-3 py-2 rounded-lg">
-                      Position the license barcode within the frame
-                    </p>
+                </div>
+              </div>
+            )}
+
+            {/* Detected Barcode Selection */}
+            {scanStatus === 'frozen' && detectedBarcodes.length > 0 && (
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-80 text-white p-6 rounded-lg max-w-md">
+                <h3 className="text-lg font-semibold mb-4">Barcode Detected</h3>
+                
+                {detectedBarcodes.length > 1 && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">Select Barcode:</label>
+                    <Select 
+                      value={selectedBarcodeIndex.toString()} 
+                      onValueChange={(value) => setSelectedBarcodeIndex(parseInt(value))}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {detectedBarcodes.map((barcode, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            Barcode {index + 1} ({Math.round((barcode.confidence || 0) * 100)}% confidence)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                )}
+
+                <div className="mb-4 text-sm">
+                  <p><strong>Raw Data:</strong> {detectedBarcodes[selectedBarcodeIndex]?.rawData}</p>
+                  <p><strong>Confidence:</strong> {Math.round((detectedBarcodes[selectedBarcodeIndex]?.confidence || 0) * 100)}%</p>
+                </div>
+
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={confirmBarcodeSelection}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full flex items-center"
+                  >
+                    <CheckIcon className="h-5 w-5 mr-2" />
+                    Use This Barcode
+                  </Button>
+                  <Button
+                    onClick={resumeScanning}
+                    variant="outline"
+                    className="border-gray-600 text-white hover:bg-gray-800 px-6 py-2 rounded-full"
+                  >
+                    Scan Again
+                  </Button>
                 </div>
               </div>
             )}
@@ -252,49 +328,24 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
         )}
       </div>
 
-      {/* Status and Controls */}
-      <div className="p-4 bg-black text-white">
+      {/* Bottom Controls */}
+      <div className="p-4 bg-black">
         <div className="text-center mb-4">
-          <p className={`text-sm ${
-            scanStatus === 'success' || scanStatus === 'frozen' ? 'text-green-400' : 
-            scanStatus === 'error' ? 'text-red-400' : 'text-gray-300'
+          <p className={`text-sm font-medium ${
+            scanStatus === 'success' ? 'text-green-400' : 
+            scanStatus === 'error' ? 'text-red-400' : 
+            'text-white'
           }`}>
-            {getScanStatusMessage()}
+            {getStatusMessage()}
           </p>
         </div>
 
-        {/* Barcode Selection */}
-        {scanStatus === 'frozen' && detectedBarcodes.length > 0 && (
-          <div className="mb-4 space-y-3">
-            <div className="text-center text-sm text-gray-300">
-              Detected Barcode Data:
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <div className="text-xs text-gray-400 mb-2">Raw Data:</div>
-              <div className="font-mono text-sm text-green-400 break-all">
-                {detectedBarcodes[selectedBarcodeIndex]?.rawData}
-              </div>
-              {detectedBarcodes[selectedBarcodeIndex]?.data && Object.keys(detectedBarcodes[selectedBarcodeIndex].data).length > 0 && (
-                <div className="mt-2">
-                  <div className="text-xs text-gray-400 mb-2">Parsed Fields:</div>
-                  <div className="text-xs text-blue-400">
-                    {Object.entries(detectedBarcodes[selectedBarcodeIndex].data)
-                      .filter(([_, value]) => value)
-                      .map(([key, value]) => `${key}: ${value}`)
-                      .join(', ')}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        <div className="flex justify-center space-x-4">
+        <div className="flex justify-center">
           {scanStatus === 'frozen' ? (
             <>
               <Button
                 onClick={confirmBarcodeSelection}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full font-semibold"
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-semibold mr-4"
               >
                 <CheckIcon className="h-5 w-5 mr-2" />
                 Use This Barcode
