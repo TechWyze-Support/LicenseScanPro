@@ -5,11 +5,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCamera } from '@/hooks/use-camera';
 import { CameraIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { edgeDetectionService } from '@/lib/edge-detection';
+import ManualCrop from './manual-crop';
 
 interface CameraCaptureProps {
   onCapture: (frontImage: string, backImage: string) => void;
   onClose: () => void;
+}
+
+interface CroppedImages {
+  face: string;
+  signature: string;
+  frontLicense: string;
+  backLicense: string;
 }
 
 export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
@@ -17,6 +24,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showManualCrop, setShowManualCrop] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [autoShutterEnabled, setAutoShutterEnabled] = useState(true);
@@ -33,18 +41,14 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
           clearInterval(timer);
-          setTimeout(async () => {
+          setTimeout(() => {
             const imageData = captureImage();
             if (imageData) {
-              // Apply automatic edge detection and cropping
-              const edgeResult = await edgeDetectionService.detectAndCropLicense(imageData);
-              const processedImage = edgeResult.success ? edgeResult.croppedImage! : imageData;
-              
               if (captureMode === 'front') {
-                setFrontImage(processedImage);
+                setFrontImage(imageData);
                 setCaptureMode('back');
               } else {
-                setBackImage(processedImage);
+                setBackImage(imageData);
                 setShowPreview(true);
               }
             }
