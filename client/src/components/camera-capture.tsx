@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCamera } from '@/hooks/use-camera';
 import { CameraIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { edgeDetectionService } from '@/lib/edge-detection';
 
 interface CameraCaptureProps {
   onCapture: (frontImage: string, backImage: string) => void;
@@ -32,14 +33,18 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
           clearInterval(timer);
-          setTimeout(() => {
+          setTimeout(async () => {
             const imageData = captureImage();
             if (imageData) {
+              // Apply automatic edge detection and cropping
+              const edgeResult = await edgeDetectionService.detectAndCropLicense(imageData);
+              const processedImage = edgeResult.success ? edgeResult.croppedImage! : imageData;
+              
               if (captureMode === 'front') {
-                setFrontImage(imageData);
+                setFrontImage(processedImage);
                 setCaptureMode('back');
               } else {
-                setBackImage(imageData);
+                setBackImage(processedImage);
                 setShowPreview(true);
               }
             }
@@ -294,7 +299,22 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
           ) : (
             <>
               <Button
-                onClick={startCountdown}
+                onClick={async () => {
+                  const imageData = captureImage();
+                  if (imageData) {
+                    // Apply automatic edge detection and cropping
+                    const edgeResult = await edgeDetectionService.detectAndCropLicense(imageData);
+                    const processedImage = edgeResult.success ? edgeResult.croppedImage! : imageData;
+                    
+                    if (captureMode === 'front') {
+                      setFrontImage(processedImage);
+                      setCaptureMode('back');
+                    } else {
+                      setBackImage(processedImage);
+                      setShowPreview(true);
+                    }
+                  }
+                }}
                 disabled={!isActive || isCountingDown}
                 size="lg"
                 className="bg-red-500 hover:bg-red-700 rounded-full px-8"

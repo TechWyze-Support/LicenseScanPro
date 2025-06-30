@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { XMarkIcon, PhotoIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { useToast } from '@/hooks/use-toast';
+import { edgeDetectionService } from '@/lib/edge-detection';
 
 interface FileUploadProps {
   onUpload: (frontImage: File | null, backImage: File | null) => void;
