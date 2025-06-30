@@ -115,6 +115,7 @@ This is a full-stack driver's license scanner application built with React, Node
 - December 30, 2025. Enhanced barcode decoding with high-contrast black and white preprocessing: added automatic image enhancement to convert barcode crops to pure black/white with sharpening filter for improved PDF417 recognition accuracy
 - December 30, 2025. Added dedicated barcode scan mode: created specialized camera interface that continuously scans for PDF417 barcodes and automatically extracts license data when clearly detected, bypassing manual cropping for barcode-only scanning
 - December 30, 2025. Enhanced barcode scanner with improved AAMVA parser and frame freezing: implemented proper AAMVA field parsing based on DL/ID headers, added camera selection controls, and freeze-frame functionality that captures the detected barcode for manual confirmation before data extraction
+- December 30, 2025. Added image zoom popup functionality: implemented clickable extracted images in customer profile with modal dialog for detailed viewing, includes hover effects with magnifying glass icons and responsive zoom display for all five crop types
 
 ## User Preferences
 

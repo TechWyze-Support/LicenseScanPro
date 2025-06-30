@@ -147,7 +147,8 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
   };
 
   return (
-    <Card className="w-full max-w-6xl mx-auto shadow-material">
+    <>
+      <Card className="w-full max-w-6xl mx-auto shadow-material">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-xl">Customer Profile</CardTitle>
         <Badge variant="secondary" className="bg-green-100 text-green-700 flex items-center">
@@ -240,11 +241,19 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Back License</Label>
               <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
                 {backLicense ? (
-                  <img 
-                    src={backLicense} 
-                    alt="Back of license" 
-                    className="max-h-full max-w-full object-contain rounded"
-                  />
+                  <div 
+                    className="relative cursor-pointer group h-full w-full flex items-center justify-center"
+                    onClick={() => setZoomImage({ src: backLicense, title: 'Back License' })}
+                  >
+                    <img 
+                      src={backLicense} 
+                      alt="Back of license" 
+                      className="max-h-full max-w-full object-contain rounded group-hover:opacity-80 transition-opacity"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MagnifyingGlassIcon className="h-6 w-6 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                    </div>
+                  </div>
                 ) : (
                   <span className="text-gray-500 text-xs">No Back</span>
                 )}
@@ -256,11 +265,19 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Barcode</Label>
               <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
                 {barcode ? (
-                  <img 
-                    src={barcode} 
-                    alt="License barcode" 
-                    className="max-h-full max-w-full object-contain"
-                  />
+                  <div 
+                    className="relative cursor-pointer group h-full w-full flex items-center justify-center"
+                    onClick={() => setZoomImage({ src: barcode, title: 'License Barcode' })}
+                  >
+                    <img 
+                      src={barcode} 
+                      alt="License barcode" 
+                      className="max-h-full max-w-full object-contain group-hover:opacity-80 transition-opacity"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MagnifyingGlassIcon className="h-6 w-6 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                    </div>
+                  </div>
                 ) : (
                   <span className="text-gray-500 text-xs">No Barcode</span>
                 )}
@@ -480,5 +497,36 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
         </div>
       </CardContent>
     </Card>
+
+    {/* Image Zoom Modal */}
+    <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-xl font-semibold flex items-center justify-between">
+            {zoomImage?.title || 'Image'}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setZoomImage(null)}
+              className="h-8 w-8 p-0"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="px-6 pb-6">
+          {zoomImage && (
+            <div className="flex justify-center">
+              <img
+                src={zoomImage.src}
+                alt={zoomImage.title}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
