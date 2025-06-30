@@ -502,16 +502,8 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
     <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="text-xl font-semibold flex items-center justify-between">
+          <DialogTitle className="text-xl font-semibold">
             {zoomImage?.title || 'Image'}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setZoomImage(null)}
-              className="h-8 w-8 p-0"
-            >
-              <XMarkIcon className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
         <div className="px-6 pb-6">
