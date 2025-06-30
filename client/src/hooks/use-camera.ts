@@ -131,13 +131,22 @@ export function useCamera(): CameraHook {
   const captureImage = useCallback((): string | null => {
     if (!videoRef.current || !isActive) return null;
     
+    // Check if video has valid dimensions
+    const videoWidth = videoRef.current.videoWidth;
+    const videoHeight = videoRef.current.videoHeight;
+    
+    if (!videoWidth || !videoHeight || videoWidth === 0 || videoHeight === 0) {
+      console.warn('Video dimensions not ready:', videoWidth, 'x', videoHeight);
+      return null;
+    }
+    
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     
     if (!context) return null;
     
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
     
     context.drawImage(videoRef.current, 0, 0);
     
@@ -168,14 +177,30 @@ export function useCamera(): CameraHook {
 
   const selectCamera = useCallback(async (deviceId: string) => {
     console.log('Selecting camera:', deviceId);
+    
+    if (deviceId === currentDeviceId) {
+      console.log('Camera already selected');
+      return;
+    }
+    
+    // Stop current camera
     stopCamera();
+    
+    // Update device ID
     setCurrentDeviceId(deviceId);
     
+    // Small delay to ensure cleanup
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     // Restart camera with selected device
-    setTimeout(() => {
-      startCamera();
-    }, 200);
-  }, [stopCamera, startCamera]);
+    try {
+      await startCamera();
+      console.log('Successfully switched to camera:', deviceId);
+    } catch (error) {
+      console.error('Failed to switch camera:', error);
+      setError('Failed to switch camera');
+    }
+  }, [currentDeviceId, stopCamera, startCamera]);
 
   return {
     isActive,

@@ -65,12 +65,20 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const detectLicenseInFrame = () => {
       if (!videoRef.current) return;
 
+      // Check if video has valid dimensions before processing
+      const videoWidth = videoRef.current.videoWidth;
+      const videoHeight = videoRef.current.videoHeight;
+      
+      if (!videoWidth || !videoHeight || videoWidth === 0 || videoHeight === 0) {
+        return; // Skip processing if video dimensions aren't ready
+      }
+
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       if (!context) return;
 
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
       context.drawImage(videoRef.current, 0, 0);
 
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
