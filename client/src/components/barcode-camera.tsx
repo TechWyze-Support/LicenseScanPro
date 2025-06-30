@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { XMarkIcon, CameraIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { XMarkIcon, CameraIcon, ArrowPathIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useCamera } from '@/hooks/use-camera';
 import { barcodeDecoder } from '@/lib/barcode-decoder';
 import type { BarcodeData } from '@/lib/barcode-decoder';
@@ -12,8 +13,11 @@ interface BarcodeCameraProps {
 
 export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCameraProps) {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'processing' | 'success' | 'error'>('idle');
+  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'processing' | 'success' | 'error' | 'frozen'>('idle');
   const [lastError, setLastError] = useState<string | null>(null);
+  const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
+  const [detectedBarcodes, setDetectedBarcodes] = useState<Array<{data: BarcodeData, rawData: string, confidence: number}>>([]);
+  const [selectedBarcodeIndex, setSelectedBarcodeIndex] = useState<number>(0);
   const scanIntervalRef = useRef<number | null>(null);
   const processingRef = useRef(false);
 
