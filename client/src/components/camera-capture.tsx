@@ -139,6 +139,11 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
       setBackImage(null);
     }
     setShowPreview(false);
+    
+    // Restart camera if it's not active
+    if (!isActive) {
+      startCamera();
+    }
   };
 
   const handleSubmit = () => {
@@ -151,6 +156,11 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     // Pass the cropped images to the parent component
     onCapture(crops.frontLicense, crops.backLicense, crops.face, crops.signature, crops.barcode);
     setShowManualCrop(false);
+    
+    // Restart camera after manual crop completion if needed
+    if (!isActive) {
+      startCamera();
+    }
   };
 
   const handleReset = () => {
@@ -158,6 +168,11 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     setBackImage(null);
     setCaptureMode('front');
     setShowPreview(false);
+    
+    // Restart camera if it's not active
+    if (!isActive) {
+      startCamera();
+    }
   };
 
   if (showManualCrop && frontImage && backImage) {
@@ -166,7 +181,13 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         frontImage={frontImage}
         backImage={backImage}
         onCropsComplete={handleCropsComplete}
-        onClose={() => setShowManualCrop(false)}
+        onClose={() => {
+          setShowManualCrop(false);
+          // Restart camera if not active when closing manual crop
+          if (!isActive) {
+            startCamera();
+          }
+        }}
       />
     );
   }
