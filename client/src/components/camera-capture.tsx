@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import ManualCrop from './manual-crop';
 
 interface CameraCaptureProps {
-  onCapture: (frontImage: string, backImage: string) => void;
+  onCapture: (frontImage: string, backImage: string, face?: string, signature?: string, barcode?: string) => void;
   onClose: () => void;
 }
 

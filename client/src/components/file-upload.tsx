@@ -116,7 +116,18 @@ export default function FileUpload({ onUpload, onClose }: FileUploadProps) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    onUpload(frontImage, backImage);
+    // Show manual crop tool if both images are available
+    if (frontImage && backImage && frontPreview && backPreview) {
+      setShowManualCrop(true);
+    } else {
+      onUpload(frontImage, backImage);
+    }
+  };
+
+  const handleCropsComplete = (crops: CroppedImages) => {
+    // Pass the cropped images to the parent component
+    onUpload(frontImage, backImage, crops.face, crops.signature, crops.barcode);
+    setShowManualCrop(false);
   };
 
   const handleReset = () => {

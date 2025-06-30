@@ -48,8 +48,8 @@ export default function Home() {
     queryKey: ['/api/customers/recent'],
   }) as { data: Customer[] | undefined };
 
-  const handleCameraCapture = async (frontImage: string, backImage: string) => {
-    await processImages(frontImage, backImage);
+  const handleCameraCapture = async (frontImage: string, backImage: string, face?: string, signature?: string, barcode?: string) => {
+    await processImages(frontImage, backImage, face, signature, barcode);
   };
 
   const handleFileUpload = async (frontFile: File | null, backFile: File | null) => {
@@ -69,7 +69,7 @@ export default function Home() {
     });
   };
 
-  const processImages = async (frontImage: string | null, backImage: string | null) => {
+  const processImages = async (frontImage: string | null, backImage: string | null, preCroppedFace?: string, preCroppedSignature?: string, preCroppedBarcode?: string) => {
     setIsProcessing(true);
     setProcessingStep('uploading');
     setProcessingProgress(0);
@@ -100,25 +100,32 @@ export default function Home() {
         }
       }
 
-      // Step 3: Extract face and signature
+      // Step 3: Extract face and signature (use pre-cropped if available)
       setProcessingStep('extracting');
       setProcessingProgress(70);
 
-      let extractedPhoto = null;
-      let extractedSignature = null;
+      let extractedPhoto = preCroppedFace || null;
+      let extractedSignature = preCroppedSignature || null;
 
-      if (frontImage) {
-        // Extract face
-        const faceResult = await faceDetectionService.detectAndCropFace(frontImage);
-        if (faceResult.success) {
-          extractedPhoto = faceResult.croppedImage;
-        }
+      // Only do automatic extraction if no pre-cropped images were provided
+      if (!preCroppedFace || !preCroppedSignature) {
+        if (frontImage) {
+          // Extract face if not provided
+          if (!preCroppedFace) {
+            const faceResult = await faceDetectionService.detectAndCropFace(frontImage);
+            if (faceResult.success && faceResult.croppedImage) {
+              extractedPhoto = faceResult.croppedImage;
+            }
+          }
 
-        // Extract signature
-        const licenseState = barcodeData?.state || 'CA';
-        const signatureResult = await faceDetectionService.extractSignature(frontImage, licenseState);
-        if (signatureResult.success) {
-          extractedSignature = signatureResult.croppedImage;
+          // Extract signature if not provided
+          if (!preCroppedSignature) {
+            const licenseState = barcodeData?.state || 'CA';
+            const signatureResult = await faceDetectionService.extractSignature(frontImage, licenseState);
+            if (signatureResult.success) {
+              extractedSignature = signatureResult.croppedImage;
+            }
+          }
         }
       }
 
