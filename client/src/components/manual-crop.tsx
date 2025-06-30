@@ -269,12 +269,12 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
       );
     }
 
-    // Apply grayscale conversion for barcode images to improve contrast
+    // Apply black and white conversion for barcode images to improve contrast
     if (currentCropType === 'barcode') {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Convert to grayscale using luminance formula
+      // Convert to black and white using adaptive thresholding
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
@@ -283,10 +283,14 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         // Calculate grayscale value using luminance formula
         const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
         
-        // Set R, G, B to the same gray value
-        data[i] = gray;
-        data[i + 1] = gray;
-        data[i + 2] = gray;
+        // Convert to pure black or white using threshold
+        // Using 128 as threshold - pixels darker than this become black, lighter become white
+        const blackWhite = gray > 128 ? 255 : 0;
+        
+        // Set R, G, B to pure black (0) or pure white (255)
+        data[i] = blackWhite;
+        data[i + 1] = blackWhite;
+        data[i + 2] = blackWhite;
         // Alpha channel (data[i + 3]) remains unchanged
       }
       

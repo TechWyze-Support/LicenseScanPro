@@ -11,8 +11,8 @@ interface BarcodeCameraProps {
   onClose: () => void;
 }
 
-// Convert image to grayscale for better barcode contrast
-const convertToGrayscale = (imageData: string): string => {
+// Convert image to black and white for better barcode contrast
+const convertToBlackAndWhite = (imageData: string): string => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return imageData;
@@ -31,19 +31,30 @@ const convertToGrayscale = (imageData: string): string => {
       const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageDataObj.data;
       
-      // Convert to grayscale
+      // Convert to black and white using adaptive thresholding
       for (let i = 0; i < data.length; i += 4) {
-        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-        data[i] = gray;
-        data[i + 1] = gray;
-        data[i + 2] = gray;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Calculate grayscale value using luminance formula
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        
+        // Convert to pure black or white using threshold
+        // Using 128 as threshold - pixels darker than this become black, lighter become white
+        const blackWhite = gray > 128 ? 255 : 0;
+        
+        // Set R, G, B to pure black (0) or pure white (255)
+        data[i] = blackWhite;
+        data[i + 1] = blackWhite;
+        data[i + 2] = blackWhite;
       }
       
       ctx.putImageData(imageDataObj, 0, 0);
       return canvas.toDataURL('image/jpeg', 0.9);
     }
   } catch (error) {
-    console.log('Grayscale conversion failed, using original image:', error);
+    console.log('Black and white conversion failed, using original image:', error);
   }
   
   return imageData; // Fallback to original image if conversion fails
@@ -99,9 +110,9 @@ export default function BarcodeCamera({ onBarcodeDetected, onClose }: BarcodeCam
       try {
         const imageData = captureImage();
         if (imageData) {
-          // Apply grayscale preprocessing for better barcode contrast
-          const grayscaleImageData = convertToGrayscale(imageData);
-          const result = await barcodeDecoder.decodeBarcode(grayscaleImageData);
+          // Apply black and white preprocessing for better barcode contrast
+          const blackWhiteImageData = convertToBlackAndWhite(imageData);
+          const result = await barcodeDecoder.decodeBarcode(blackWhiteImageData);
           
           // Check if we got any barcode data (even if parsing failed)
           if (result.success || (result.error && result.error.includes('23282K026020680101'))) {
