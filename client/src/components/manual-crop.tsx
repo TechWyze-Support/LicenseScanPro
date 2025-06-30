@@ -269,12 +269,12 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
       );
     }
 
-    // Apply black and white conversion for barcode images to improve contrast
+    // Apply 8-color grayscale conversion for barcode images to improve contrast
     if (currentCropType === 'barcode') {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Convert to black and white using adaptive thresholding
+      // Convert to 8-level grayscale (0, 36, 72, 108, 144, 180, 216, 255)
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
@@ -283,14 +283,14 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         // Calculate grayscale value using luminance formula
         const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
         
-        // Convert to pure black or white using threshold
-        // Using 128 as threshold - pixels darker than this become black, lighter become white
-        const blackWhite = gray > 128 ? 255 : 0;
+        // Quantize to 8 levels (0-7), then map to 0-255 range
+        const level = Math.floor(gray / 32); // Divide by 32 to get 0-7 range
+        const quantizedGray = Math.min(level * 36, 255); // Map to 8 levels: 0, 36, 72, 108, 144, 180, 216, 255
         
-        // Set R, G, B to pure black (0) or pure white (255)
-        data[i] = blackWhite;
-        data[i + 1] = blackWhite;
-        data[i + 2] = blackWhite;
+        // Set R, G, B to the quantized grayscale value
+        data[i] = quantizedGray;
+        data[i + 1] = quantizedGray;
+        data[i + 2] = quantizedGray;
         // Alpha channel (data[i + 3]) remains unchanged
       }
       
