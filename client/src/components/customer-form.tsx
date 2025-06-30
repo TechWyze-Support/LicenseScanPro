@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { insertCustomerSchema, type InsertCustomer } from '@shared/schema';
-import { CheckCircleIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ArrowDownTrayIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -79,6 +80,7 @@ const US_STATES = [
 
 export default function CustomerForm({ initialData, profilePhoto, signature, frontLicense, backLicense, barcode, onSave }: CustomerFormProps) {
   const [isDraft, setIsDraft] = useState(false);
+  const [zoomImage, setZoomImage] = useState<{ src: string; title: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -164,11 +166,19 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Profile Photo</Label>
               <div className="bg-white rounded-lg p-3 text-center border">
                 {profilePhoto ? (
-                  <img 
-                    src={profilePhoto} 
-                    alt="Customer profile photo" 
-                    className="w-20 h-20 rounded-full mx-auto object-cover shadow-sm"
-                  />
+                  <div 
+                    className="relative cursor-pointer group"
+                    onClick={() => setZoomImage({ src: profilePhoto, title: 'Profile Photo' })}
+                  >
+                    <img 
+                      src={profilePhoto} 
+                      alt="Customer profile photo" 
+                      className="w-20 h-20 rounded-full mx-auto object-cover shadow-sm group-hover:opacity-80 transition-opacity"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MagnifyingGlassIcon className="h-6 w-6 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                    </div>
+                  </div>
                 ) : (
                   <div className="w-20 h-20 rounded-full mx-auto bg-gray-200 flex items-center justify-center">
                     <span className="text-gray-500 text-xs">No Photo</span>
@@ -182,11 +192,19 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Signature</Label>
               <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
                 {signature ? (
-                  <img 
-                    src={signature} 
-                    alt="Customer signature" 
-                    className="h-8 max-w-full object-contain"
-                  />
+                  <div 
+                    className="relative cursor-pointer group h-full w-full flex items-center justify-center"
+                    onClick={() => setZoomImage({ src: signature, title: 'Customer Signature' })}
+                  >
+                    <img 
+                      src={signature} 
+                      alt="Customer signature" 
+                      className="h-8 max-w-full object-contain group-hover:opacity-80 transition-opacity"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MagnifyingGlassIcon className="h-6 w-6 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                    </div>
+                  </div>
                 ) : (
                   <span className="text-gray-500 text-xs">No Signature</span>
                 )}
@@ -198,11 +216,19 @@ export default function CustomerForm({ initialData, profilePhoto, signature, fro
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Front License</Label>
               <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
                 {frontLicense ? (
-                  <img 
-                    src={frontLicense} 
-                    alt="Front of license" 
-                    className="max-h-full max-w-full object-contain rounded"
-                  />
+                  <div 
+                    className="relative cursor-pointer group h-full w-full flex items-center justify-center"
+                    onClick={() => setZoomImage({ src: frontLicense, title: 'Front License' })}
+                  >
+                    <img 
+                      src={frontLicense} 
+                      alt="Front of license" 
+                      className="max-h-full max-w-full object-contain rounded group-hover:opacity-80 transition-opacity"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MagnifyingGlassIcon className="h-6 w-6 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                    </div>
+                  </div>
                 ) : (
                   <span className="text-gray-500 text-xs">No Front</span>
                 )}
