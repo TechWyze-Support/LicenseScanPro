@@ -82,6 +82,14 @@ export function useCamera(): CameraHook {
       console.log('Video tracks:', stream.getVideoTracks());
       
       if (videoRef.current) {
+        // Clear any existing source first
+        videoRef.current.srcObject = null;
+        videoRef.current.load();
+        
+        // Small delay to ensure cleanup
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Set new stream
         videoRef.current.srcObject = stream;
         console.log('Set video srcObject');
         
@@ -123,6 +131,7 @@ export function useCamera(): CameraHook {
     
     if (videoRef.current) {
       videoRef.current.srcObject = null;
+      videoRef.current.load(); // Force reload to clear the video
     }
     
     setIsActive(false);
@@ -183,24 +192,61 @@ export function useCamera(): CameraHook {
       return;
     }
     
-    // Stop current camera
-    stopCamera();
-    
-    // Update device ID
-    setCurrentDeviceId(deviceId);
-    
-    // Small delay to ensure cleanup
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Restart camera with selected device
     try {
-      await startCamera();
+      // Stop current camera and clear video
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.load();
+      }
+      
+      setIsActive(false);
+      
+      // Update device ID and restart
+      setCurrentDeviceId(deviceId);
+      
+      // Longer delay to ensure complete cleanup
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Start camera with new device
+      console.log('Starting new camera:', deviceId);
+      
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setAvailableDevices(videoDevices);
+      
+      const constraints: MediaStreamConstraints = {
+        video: {
+          deviceId: { exact: deviceId },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+      
+      console.log('New camera constraints:', constraints);
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        console.log('New camera feed active');
+      }
+      
+      setIsActive(true);
       console.log('Successfully switched to camera:', deviceId);
+      
     } catch (error) {
       console.error('Failed to switch camera:', error);
-      setError('Failed to switch camera');
+      setError('Failed to switch camera: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
-  }, [currentDeviceId, stopCamera, startCamera]);
+  }, [currentDeviceId]);
 
   return {
     isActive,
