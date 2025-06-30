@@ -109,7 +109,7 @@ This is a full-stack driver's license scanner application built with React, Node
 - June 29, 2025. Added camera selection dropdown and auto-shutter detection using edge detection algorithms
 - December 29, 2025. Fixed barcode processing success/failure messaging to show accurate status
 - December 29, 2025. Implemented precise photo and signature extraction using standard DL coordinates: photo (4.7%, 22%, 25.9%, 53.2%) and signature (4.7%, 76.2%, 25.9%, 11.9%)
-- December 30, 2025. Implemented automatic white edge detection and license cropping using Sobel edge detection algorithm with aspect ratio validation (1.3-2.0) and confidence scoring
+- December 30, 2025. Replaced automatic edge detection with manual crop and skew tool for precise extraction of face, signature, front license, and back license with rotation correction
 
 ## User Preferences
 
