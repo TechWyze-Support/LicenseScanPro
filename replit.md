@@ -107,6 +107,8 @@ This is a full-stack driver's license scanner application built with React, Node
 - June 29, 2025. Initial setup
 - June 29, 2025. Replaced license guide area with full-screen capture and 3-second countdown timer for optimal resolution
 - June 29, 2025. Added camera selection dropdown and auto-shutter detection using edge detection algorithms
+- December 29, 2025. Fixed barcode processing success/failure messaging to show accurate status
+- December 29, 2025. Implemented precise photo and signature extraction using standard DL coordinates: photo (4.7%, 22%, 25.9%, 53.2%) and signature (4.7%, 76.2%, 25.9%, 11.9%)
 
 ## User Preferences
 
