@@ -39,9 +39,17 @@ export class BarcodeDecoder {
     try {
       console.log('Starting comprehensive barcode decode process...');
       
-      // Enhanced multi-strategy approach
+      // First, enhance the barcode image to high contrast black and white
+      const enhancedImage = await this.enhanceBarcodeToBlackWhite(imageData);
+      console.log('Enhanced barcode image to high contrast black and white');
+      
+      // Enhanced multi-strategy approach with both enhanced and original images
       const strategies = [
+        () => this.tryZXingDecode(enhancedImage),
         () => this.tryZXingDecode(imageData),
+        () => this.tryPreprocessedDecode(enhancedImage),
+        () => this.tryCanvasBasedDecode(enhancedImage),
+        () => this.tryAlternativeLibraries(enhancedImage),
         () => this.tryPreprocessedDecode(imageData),
         () => this.tryCanvasBasedDecode(imageData),
         () => this.tryAlternativeLibraries(imageData)
@@ -439,6 +447,114 @@ export class BarcodeDecoder {
       console.warn('Image preprocessing failed, using original:', error);
       return imageData;
     }
+  }
+
+  async enhanceBarcodeToBlackWhite(imageData: string): Promise<string> {
+    return new Promise((resolve) => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(imageData);
+          return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+
+          const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageDataObj.data;
+
+          // Convert to high contrast black and white
+          for (let i = 0; i < data.length; i += 4) {
+            // Calculate grayscale value
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+            
+            // Apply aggressive threshold for high contrast
+            // Use adaptive threshold based on local contrast
+            const threshold = 128; // Can be adjusted for different barcode types
+            const value = gray > threshold ? 255 : 0;
+            
+            // Set all RGB channels to the same value (black or white)
+            data[i] = value;     // Red
+            data[i + 1] = value; // Green
+            data[i + 2] = value; // Blue
+            // Alpha channel stays the same
+          }
+
+          // Apply additional sharpening to enhance barcode lines
+          const sharpenedData = this.applySharpenFilter(data, canvas.width, canvas.height);
+          
+          // Put enhanced image data back
+          ctx.putImageData(new ImageData(sharpenedData, canvas.width, canvas.height), 0, 0);
+
+          resolve(canvas.toDataURL('image/png'));
+        };
+
+        img.onerror = () => {
+          console.warn('Failed to load image for barcode enhancement');
+          resolve(imageData);
+        };
+
+        img.src = imageData;
+      } catch (error) {
+        console.warn('Barcode enhancement failed, using original:', error);
+        resolve(imageData);
+      }
+    });
+  }
+
+  private applySharpenFilter(data: Uint8ClampedArray, width: number, height: number): Uint8ClampedArray {
+    const result = new Uint8ClampedArray(data.length);
+    
+    // Sharpening kernel
+    const kernel = [
+      0, -1, 0,
+      -1, 5, -1,
+      0, -1, 0
+    ];
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        for (let c = 0; c < 3; c++) { // RGB channels only
+          let sum = 0;
+          for (let ky = -1; ky <= 1; ky++) {
+            for (let kx = -1; kx <= 1; kx++) {
+              const pixelIndex = ((y + ky) * width + (x + kx)) * 4 + c;
+              const kernelIndex = (ky + 1) * 3 + (kx + 1);
+              sum += data[pixelIndex] * kernel[kernelIndex];
+            }
+          }
+          
+          const resultIndex = (y * width + x) * 4 + c;
+          result[resultIndex] = Math.max(0, Math.min(255, sum));
+        }
+        
+        // Copy alpha channel
+        const alphaIndex = (y * width + x) * 4 + 3;
+        result[alphaIndex] = data[alphaIndex];
+      }
+    }
+    
+    // Copy edges without filtering
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (y === 0 || y === height - 1 || x === 0 || x === width - 1) {
+          for (let c = 0; c < 4; c++) {
+            const index = (y * width + x) * 4 + c;
+            result[index] = data[index];
+          }
+        }
+      }
+    }
+    
+    return result;
   }
 }
 
