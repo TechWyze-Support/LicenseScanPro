@@ -38,12 +38,45 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     backLicense: null,
     barcode: null
   });
+  const [completedCrops, setCompletedCrops] = useState<Record<CropType, string>>({
+    face: '',
+    signature: '',
+    frontLicense: '',
+    backLicense: '',
+    barcode: ''
+  });
   const [rotation, setRotation] = useState(0);
   const [tempCrop, setTempCrop] = useState<CropArea | null>(null);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const cropOrder: CropType[] = ['face', 'signature', 'frontLicense', 'backLicense', 'barcode'];
+
+  const requiredImage = {
+    face: 'front',
+    signature: 'front',
+    frontLicense: 'front',
+    backLicense: 'back',
+    barcode: 'back'
+  };
+
+  const advanceToNextCrop = () => {
+    const currentIndex = cropOrder.indexOf(currentCropType);
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < cropOrder.length) {
+      const nextCropType = cropOrder[nextIndex];
+      setCurrentCropType(nextCropType);
+      
+      // Auto-switch to required image
+      const required = requiredImage[nextCropType];
+      if (currentImage !== required) {
+        setCurrentImage(required as 'front' | 'back');
+      }
+    }
+  };
 
   const drawImageOnCanvas = useCallback((image: HTMLImageElement, rotation: number = 0) => {
     const canvas = canvasRef.current;
@@ -159,10 +192,27 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
 
   const handleMouseUp = () => {
     if (tempCrop && tempCrop.width > 10 && tempCrop.height > 10) {
-      setCropAreas(prev => ({
-        ...prev,
-        [currentCropType]: tempCrop
-      }));
+      // Immediately process this crop
+      const currentImg = new Image();
+      currentImg.onload = () => {
+        const croppedImage = extractCrop(currentImg, tempCrop);
+        
+        // Store the completed crop
+        setCropAreas(prev => ({
+          ...prev,
+          [currentCropType]: tempCrop
+        }));
+        
+        // Store the processed crop image
+        setCompletedCrops(prev => ({
+          ...prev,
+          [currentCropType]: croppedImage
+        }));
+        
+        // Auto-advance to next crop type
+        advanceToNextCrop();
+      };
+      currentImg.src = currentImage === 'front' ? frontImage : backImage;
     }
     setIsDrawing(false);
     setTempCrop(null);
@@ -209,29 +259,19 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
   };
 
   const handleComplete = () => {
-    const frontImg = new Image();
-    const backImg = new Image();
+    // Check if all crops are completed
+    const allCropsCompleted = Object.values(completedCrops).every(crop => crop !== '');
     
-    Promise.all([
-      new Promise<void>((resolve) => {
-        frontImg.onload = () => resolve();
-        frontImg.src = frontImage;
-      }),
-      new Promise<void>((resolve) => {
-        backImg.onload = () => resolve();
-        backImg.src = backImage;
-      })
-    ]).then(() => {
-      const crops = {
-        face: cropAreas.face ? extractCrop(frontImg, cropAreas.face) : '',
-        signature: cropAreas.signature ? extractCrop(frontImg, cropAreas.signature) : '',
-        frontLicense: cropAreas.frontLicense ? extractCrop(frontImg, cropAreas.frontLicense) : frontImage,
-        backLicense: cropAreas.backLicense ? extractCrop(backImg, cropAreas.backLicense) : backImage,
-        barcode: cropAreas.barcode ? extractCrop(backImg, cropAreas.barcode) : ''
-      };
-      
-      onCropsComplete(crops);
-    });
+    if (allCropsCompleted) {
+      onCropsComplete(completedCrops);
+    } else {
+      // Show which crops are missing
+      const missing = Object.entries(completedCrops)
+        .filter(([, crop]) => crop === '')
+        .map(([type]) => cropTypeLabels[type as CropType])
+        .join(', ');
+      alert(`Please complete all crops. Missing: ${missing}`);
+    }
   };
 
   const loadImage = useCallback(() => {
@@ -258,14 +298,6 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     frontLicense: 'Front License',
     backLicense: 'Back License',
     barcode: 'Barcode'
-  };
-
-  const requiredImage = {
-    face: 'front',
-    signature: 'front',
-    frontLicense: 'front',
-    backLicense: 'back',
-    barcode: 'back'
   };
 
   return (
