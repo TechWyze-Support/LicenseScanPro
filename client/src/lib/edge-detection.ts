@@ -16,13 +16,17 @@ export interface EdgeDetectionResult {
 export class EdgeDetectionService {
   async detectAndCropLicense(imageData: string): Promise<EdgeDetectionResult> {
     try {
+      console.log('Starting edge detection process...');
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
+          console.log('Image loaded for edge detection, dimensions:', img.width, 'x', img.height);
           const result = this.processImage(img);
+          console.log('Edge detection result:', result);
           resolve(result);
         };
-        img.onerror = () => {
+        img.onerror = (error) => {
+          console.error('Failed to load image for edge detection:', error);
           resolve({
             success: false,
             error: 'Failed to load image for edge detection'
@@ -31,6 +35,7 @@ export class EdgeDetectionService {
         img.src = imageData;
       });
     } catch (error) {
+      console.error('Edge detection error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error during edge detection'
@@ -39,10 +44,13 @@ export class EdgeDetectionService {
   }
 
   private processImage(img: HTMLImageElement): EdgeDetectionResult {
+    console.log('Processing image for edge detection...');
+    
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
     if (!ctx) {
+      console.error('Failed to create canvas context');
       return {
         success: false,
         error: 'Failed to create canvas context'
@@ -55,19 +63,39 @@ export class EdgeDetectionService {
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
+    console.log('Image data extracted, size:', data.length);
 
     // Convert to grayscale and apply edge detection
     const grayscale = this.convertToGrayscale(data, canvas.width, canvas.height);
+    console.log('Converted to grayscale, pixels:', grayscale.length);
+    
     const edges = this.detectEdges(grayscale, canvas.width, canvas.height);
+    console.log('Edge detection completed');
     
     // Find the license rectangle bounds
     const bounds = this.findLicenseBounds(edges, canvas.width, canvas.height);
+    console.log('License bounds detection result:', bounds);
     
     if (!bounds) {
+      console.warn('Could not detect license edges clearly');
       return {
         success: false,
         error: 'Could not detect license edges clearly'
       };
+    }
+
+    // Create debug visualization
+    const debugCanvas = document.createElement('canvas');
+    const debugCtx = debugCanvas.getContext('2d');
+    debugCanvas.width = canvas.width;
+    debugCanvas.height = canvas.height;
+    
+    if (debugCtx) {
+      debugCtx.drawImage(img, 0, 0);
+      debugCtx.strokeStyle = 'red';
+      debugCtx.lineWidth = 3;
+      debugCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+      console.log('Debug image with bounds overlay created');
     }
 
     // Crop the image to the detected bounds
@@ -91,6 +119,7 @@ export class EdgeDetectionService {
     );
 
     const croppedImage = croppedCanvas.toDataURL('image/jpeg', 0.9);
+    console.log('Cropped image created successfully');
     
     return {
       success: true,
@@ -145,12 +174,18 @@ export class EdgeDetectionService {
   }
 
   private findLicenseBounds(edges: number[], width: number, height: number): {x: number, y: number, width: number, height: number} | null {
+    console.log('Finding license bounds...');
+    
     // Find horizontal edges (top and bottom of license)
     const horizontalEdges = this.findHorizontalEdges(edges, width, height);
     const verticalEdges = this.findVerticalEdges(edges, width, height);
     
+    console.log('Horizontal edges found:', horizontalEdges.length, horizontalEdges);
+    console.log('Vertical edges found:', verticalEdges.length, verticalEdges);
+    
     if (horizontalEdges.length < 2 || verticalEdges.length < 2) {
-      return null;
+      console.log('Not enough edges found, trying fallback method...');
+      return this.fallbackBounds(edges, width, height);
     }
     
     // Get the most prominent edges
@@ -163,27 +198,84 @@ export class EdgeDetectionService {
     const detectedWidth = rightEdge - leftEdge;
     const detectedHeight = bottomEdge - topEdge;
     
+    console.log('Detected bounds:', {leftEdge, topEdge, detectedWidth, detectedHeight});
+    
     // Driver's license aspect ratio is approximately 1.6:1
     const aspectRatio = detectedWidth / detectedHeight;
+    console.log('Aspect ratio:', aspectRatio);
     
-    if (aspectRatio < 1.3 || aspectRatio > 2.0) {
-      return null; // Doesn't look like a license
+    if (aspectRatio < 1.0 || aspectRatio > 3.0) {
+      console.log('Aspect ratio invalid, trying fallback...');
+      return this.fallbackBounds(edges, width, height);
     }
     
     // Add small padding to ensure we don't cut off edges
     const padding = Math.min(width, height) * 0.02;
     
-    return {
+    const bounds = {
       x: Math.max(0, leftEdge - padding),
       y: Math.max(0, topEdge - padding),
       width: Math.min(width - (leftEdge - padding), detectedWidth + 2 * padding),
       height: Math.min(height - (topEdge - padding), detectedHeight + 2 * padding)
     };
+    
+    console.log('Final bounds:', bounds);
+    return bounds;
+  }
+
+  private fallbackBounds(edges: number[], width: number, height: number): {x: number, y: number, width: number, height: number} | null {
+    console.log('Using fallback bounds detection...');
+    
+    // Simple fallback: look for any significant contrast areas
+    const threshold = 30;
+    let minX = width, maxX = 0, minY = height, maxY = 0;
+    let edgeCount = 0;
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (edges[y * width + x] > threshold) {
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+          edgeCount++;
+        }
+      }
+    }
+    
+    console.log('Fallback edge count:', edgeCount);
+    console.log('Fallback bounds:', {minX, minY, width: maxX - minX, height: maxY - minY});
+    
+    if (edgeCount < 100) { // Not enough edges
+      console.log('Not enough edges for fallback, returning center crop...');
+      // Return a center crop as last resort
+      const cropWidth = Math.min(width * 0.8, height * 1.6);
+      const cropHeight = cropWidth / 1.6;
+      return {
+        x: (width - cropWidth) / 2,
+        y: (height - cropHeight) / 2,
+        width: cropWidth,
+        height: cropHeight
+      };
+    }
+    
+    const detectedWidth = maxX - minX;
+    const detectedHeight = maxY - minY;
+    
+    // Add padding
+    const padding = Math.min(width, height) * 0.05;
+    
+    return {
+      x: Math.max(0, minX - padding),
+      y: Math.max(0, minY - padding),
+      width: Math.min(width, detectedWidth + 2 * padding),
+      height: Math.min(height, detectedHeight + 2 * padding)
+    };
   }
 
   private findHorizontalEdges(edges: number[], width: number, height: number): number[] {
     const horizontalEdges: number[] = [];
-    const threshold = width * 0.3; // At least 30% of the width should have edges
+    const threshold = width * 0.1; // Lowered threshold to 10%
     
     for (let y = 0; y < height; y++) {
       let edgeCount = 0;
@@ -203,7 +295,7 @@ export class EdgeDetectionService {
 
   private findVerticalEdges(edges: number[], width: number, height: number): number[] {
     const verticalEdges: number[] = [];
-    const threshold = height * 0.3; // At least 30% of the height should have edges
+    const threshold = height * 0.1; // Lowered threshold to 10%
     
     for (let x = 0; x < width; x++) {
       let edgeCount = 0;
