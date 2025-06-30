@@ -34,6 +34,9 @@ export default function Home() {
   const [extractedData, setExtractedData] = useState<any>(null);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
+  const [frontLicense, setFrontLicense] = useState<string | null>(null);
+  const [backLicense, setBackLicense] = useState<string | null>(null);
+  const [barcode, setBarcode] = useState<string | null>(null);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   
   const { toast } = useToast();
@@ -49,7 +52,7 @@ export default function Home() {
   }) as { data: Customer[] | undefined };
 
   const handleCameraCapture = async (frontImage: string, backImage: string, face?: string, signature?: string, barcode?: string) => {
-    await processImages(frontImage, backImage, face, signature, barcode);
+    await processImages(frontImage, backImage, face, signature, barcode, frontImage, backImage);
   };
 
   const handleFileUpload = async (frontFile: File | null, backFile: File | null, face?: string, signature?: string, barcode?: string) => {
@@ -58,7 +61,7 @@ export default function Home() {
     const frontImage = frontFile ? await fileToDataURL(frontFile) : null;
     const backImage = backFile ? await fileToDataURL(backFile) : null;
 
-    await processImages(frontImage, backImage, face, signature, barcode);
+    await processImages(frontImage, backImage, face, signature, barcode, frontImage, backImage);
   };
 
   const fileToDataURL = (file: File): Promise<string> => {
@@ -69,7 +72,7 @@ export default function Home() {
     });
   };
 
-  const processImages = async (frontImage: string | null, backImage: string | null, preCroppedFace?: string, preCroppedSignature?: string, preCroppedBarcode?: string) => {
+  const processImages = async (frontImage: string | null, backImage: string | null, preCroppedFace?: string, preCroppedSignature?: string, preCroppedBarcode?: string, preCroppedFrontLicense?: string, preCroppedBackLicense?: string) => {
     setIsProcessing(true);
     setProcessingStep('uploading');
     setProcessingProgress(0);

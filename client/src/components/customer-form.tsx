@@ -18,6 +18,9 @@ interface CustomerFormProps {
   initialData?: Partial<InsertCustomer>;
   profilePhoto?: string;
   signature?: string;
+  frontLicense?: string;
+  backLicense?: string;
+  barcode?: string;
   onSave?: (customer: any) => void;
 }
 
@@ -74,7 +77,7 @@ const US_STATES = [
   { value: 'WY', label: 'Wyoming' }
 ];
 
-export default function CustomerForm({ initialData, profilePhoto, signature, onSave }: CustomerFormProps) {
+export default function CustomerForm({ initialData, profilePhoto, signature, frontLicense, backLicense, barcode, onSave }: CustomerFormProps) {
   const [isDraft, setIsDraft] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -152,28 +155,32 @@ export default function CustomerForm({ initialData, profilePhoto, signature, onS
       </CardHeader>
 
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Profile Photo and Signature */}
-          <div className="space-y-6">
+        {/* Crop Images Section */}
+        <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Extracted Images</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {/* Profile Photo */}
             <div>
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Profile Photo</Label>
-              <div className="bg-gray-100 rounded-lg p-4 text-center">
+              <div className="bg-white rounded-lg p-3 text-center border">
                 {profilePhoto ? (
                   <img 
                     src={profilePhoto} 
                     alt="Customer profile photo" 
-                    className="w-24 h-24 rounded-full mx-auto object-cover shadow-md"
+                    className="w-20 h-20 rounded-full mx-auto object-cover shadow-sm"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full mx-auto bg-gray-300 flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full mx-auto bg-gray-200 flex items-center justify-center">
                     <span className="text-gray-500 text-xs">No Photo</span>
                   </div>
                 )}
               </div>
             </div>
+            
+            {/* Signature */}
             <div>
               <Label className="text-sm font-medium text-gray-700 mb-2 block">Signature</Label>
-              <div className="bg-gray-100 rounded-lg p-4 h-16 flex items-center justify-center">
+              <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
                 {signature ? (
                   <img 
                     src={signature} 
@@ -185,7 +192,58 @@ export default function CustomerForm({ initialData, profilePhoto, signature, onS
                 )}
               </div>
             </div>
+            
+            {/* Front License */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">Front License</Label>
+              <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
+                {frontLicense ? (
+                  <img 
+                    src={frontLicense} 
+                    alt="Front of license" 
+                    className="max-h-full max-w-full object-contain rounded"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-xs">No Front</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Back License */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">Back License</Label>
+              <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
+                {backLicense ? (
+                  <img 
+                    src={backLicense} 
+                    alt="Back of license" 
+                    className="max-h-full max-w-full object-contain rounded"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-xs">No Back</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Barcode */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">Barcode</Label>
+              <div className="bg-white rounded-lg p-3 h-24 flex items-center justify-center border">
+                {barcode ? (
+                  <img 
+                    src={barcode} 
+                    alt="License barcode" 
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-xs">No Barcode</span>
+                )}
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8">
 
           {/* Customer Information Form */}
           <div className="lg:col-span-3">
