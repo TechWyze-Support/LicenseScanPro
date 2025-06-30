@@ -231,30 +231,43 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     const scaleX = image.width / displayCanvas.width;
     const scaleY = image.height / displayCanvas.height;
 
-    // Actual crop dimensions
+    // Actual crop dimensions in source image coordinates
     const actualX = area.x * scaleX;
     const actualY = area.y * scaleY;
     const actualWidth = area.width * scaleX;
     const actualHeight = area.height * scaleY;
 
+    // Set canvas size to crop size
     canvas.width = actualWidth;
     canvas.height = actualHeight;
 
-    ctx.save();
-    ctx.translate(actualWidth / 2, actualHeight / 2);
-    ctx.rotate((area.rotation * Math.PI) / 180);
-    ctx.drawImage(
-      image,
-      actualX - actualWidth / 2,
-      actualY - actualHeight / 2,
-      actualWidth,
-      actualHeight,
-      -actualWidth / 2,
-      -actualHeight / 2,
-      actualWidth,
-      actualHeight
-    );
-    ctx.restore();
+    // Handle rotation if needed
+    if (area.rotation !== 0) {
+      // For rotated crops, we need a larger canvas to avoid clipping
+      const diagonal = Math.sqrt(actualWidth * actualWidth + actualHeight * actualHeight);
+      canvas.width = diagonal;
+      canvas.height = diagonal;
+      
+      ctx.save();
+      // Translate to center of canvas
+      ctx.translate(diagonal / 2, diagonal / 2);
+      // Apply rotation
+      ctx.rotate((area.rotation * Math.PI) / 180);
+      // Draw the cropped area centered
+      ctx.drawImage(
+        image,
+        actualX, actualY, actualWidth, actualHeight,
+        -actualWidth / 2, -actualHeight / 2, actualWidth, actualHeight
+      );
+      ctx.restore();
+    } else {
+      // No rotation - simple crop
+      ctx.drawImage(
+        image,
+        actualX, actualY, actualWidth, actualHeight,
+        0, 0, actualWidth, actualHeight
+      );
+    }
 
     return canvas.toDataURL('image/jpeg', 0.9);
   };
