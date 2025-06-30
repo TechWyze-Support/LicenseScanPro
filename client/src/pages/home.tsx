@@ -278,6 +278,15 @@ export default function Home() {
     );
   }
 
+  if (scanMode === 'barcode') {
+    return (
+      <BarcodeCamera 
+        onBarcodeDetected={handleBarcodeDetected}
+        onClose={() => setScanMode('none')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
