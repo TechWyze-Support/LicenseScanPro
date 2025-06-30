@@ -67,42 +67,51 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     ctx.drawImage(image, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
     ctx.restore();
 
-    // Draw existing crop areas
+    // Draw all existing crop areas
     Object.entries(cropAreas).forEach(([type, area]) => {
-      if (area && type !== currentCropType) {
-        drawCropArea(ctx, area, type as CropType, false);
+      if (area) {
+        drawCropArea(ctx, area, type as CropType, type === currentCropType);
       }
     });
 
-    // Draw current crop area
-    const currentArea = cropAreas[currentCropType] || tempCrop;
-    if (currentArea) {
-      drawCropArea(ctx, currentArea, currentCropType, true);
+    // Draw temporary crop area while dragging
+    if (tempCrop && tempCrop.width > 0 && tempCrop.height > 0) {
+      drawCropArea(ctx, tempCrop, currentCropType, true);
     }
   }, [cropAreas, currentCropType, tempCrop]);
 
   const drawCropArea = (ctx: CanvasRenderingContext2D, area: CropArea, type: CropType, isActive: boolean) => {
     const colors = {
-      face: isActive ? '#ff0000' : '#ff666666',
-      signature: isActive ? '#00ff00' : '#00ff6666',
-      frontLicense: isActive ? '#0000ff' : '#0000ff66',
-      backLicense: isActive ? '#ffff00' : '#ffff0066'
+      face: isActive ? '#ff0000' : '#ff4444',
+      signature: isActive ? '#00ff00' : '#44ff44',
+      frontLicense: isActive ? '#0066ff' : '#4488ff',
+      backLicense: isActive ? '#ffaa00' : '#ffcc44'
     };
 
-    ctx.strokeStyle = colors[type];
-    ctx.lineWidth = isActive ? 3 : 2;
-    ctx.setLineDash(isActive ? [] : [5, 5]);
-    
+    // Ensure stroke properties are set correctly
     ctx.save();
+    ctx.strokeStyle = colors[type];
+    ctx.lineWidth = isActive ? 4 : 2;
+    ctx.setLineDash(isActive ? [] : [8, 4]);
+    ctx.globalAlpha = 1.0;
+    
+    // Draw crop rectangle with rotation
     ctx.translate(area.x + area.width / 2, area.y + area.height / 2);
     ctx.rotate((area.rotation * Math.PI) / 180);
     ctx.strokeRect(-area.width / 2, -area.height / 2, area.width, area.height);
     ctx.restore();
 
-    // Draw label
+    // Draw label with background for better visibility
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    const labelText = type.replace(/([A-Z])/g, ' $1').trim();
+    const metrics = ctx.measureText(labelText);
+    ctx.fillRect(area.x - 2, area.y - 18, metrics.width + 8, 16);
+    
     ctx.fillStyle = colors[type];
-    ctx.font = '14px Arial';
-    ctx.fillText(type, area.x, area.y - 5);
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText(labelText, area.x + 2, area.y - 6);
+    ctx.restore();
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -110,8 +119,11 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     setIsDrawing(true);
     setTempCrop({ x, y, width: 0, height: 0, rotation });
@@ -124,8 +136,11 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const currentX = (e.clientX - rect.left) * scaleX;
+    const currentY = (e.clientY - rect.top) * scaleY;
 
     const width = currentX - tempCrop.x;
     const height = currentY - tempCrop.y;
@@ -231,7 +246,7 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     if (imageRef.current) {
       drawImageOnCanvas(imageRef.current, rotation);
     }
-  }, [drawImageOnCanvas, rotation, cropAreas, tempCrop]);
+  }, [drawImageOnCanvas, rotation, cropAreas, tempCrop, currentCropType, currentImage]);
 
   const cropTypeLabels = {
     face: 'Face Photo',
