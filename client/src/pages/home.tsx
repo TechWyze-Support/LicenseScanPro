@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@shared/schema';
 
 type ScanMode = 'none' | 'camera' | 'upload';
-type ProcessingStep = 'idle' | 'uploading' | 'decoding' | 'extracting' | 'complete';
+type ProcessingStep = 'idle' | 'uploading' | 'decoding' | 'ocr' | 'extracting' | 'complete';
 
 export default function Home() {
   const [scanMode, setScanMode] = useState<ScanMode>('none');
@@ -119,9 +119,35 @@ export default function Home() {
         }
       }
 
-      // Step 3: Extract face and signature (use pre-cropped if available)
+      // Step 3: OCR text extraction from front license image
+      setProcessingStep('ocr');
+      setProcessingProgress(55);
+      
+      let ocrData = null;
+      if (frontImage || preCroppedFrontLicense) {
+        const imageToProcess = preCroppedFrontLicense || frontImage;
+        if (imageToProcess) {
+          try {
+            const result = await ocrService.extractTextFromLicense(imageToProcess);
+            if (result.success && result.data) {
+              ocrData = result.data;
+              console.log('OCR extraction successful:', ocrData);
+              toast({
+                title: "Text extracted",
+                description: "License text information has been read automatically.",
+              });
+            } else {
+              console.warn('OCR extraction failed:', result.error);
+            }
+          } catch (error) {
+            console.error('OCR processing error:', error);
+          }
+        }
+      }
+
+      // Step 4: Extract face and signature (use pre-cropped if available)
       setProcessingStep('extracting');
-      setProcessingProgress(70);
+      setProcessingProgress(75);
 
       let extractedPhoto = preCroppedFace || null;
       let extractedSignature = preCroppedSignature || null;
@@ -148,12 +174,15 @@ export default function Home() {
         }
       }
 
-      // Step 4: Complete processing
+      // Step 5: Complete processing
       setProcessingStep('complete');
       setProcessingProgress(100);
 
+      // Merge barcode data with OCR data, prioritizing barcode data for accuracy
+      const mergedData = { ...ocrData, ...barcodeData };
+      
       // Set results
-      setExtractedData(barcodeData);
+      setExtractedData(mergedData);
       setProfilePhoto(extractedPhoto ?? null);
       setSignature(extractedSignature ?? null);
       setFrontLicense(preCroppedFrontLicense ?? null);
@@ -210,6 +239,8 @@ export default function Home() {
         return 'Uploading license images...';
       case 'decoding':
         return 'Extracting barcode data...';
+      case 'ocr':
+        return 'Reading text from license image...';
       case 'extracting':
         return 'Detecting face and extracting signature...';
       case 'complete':

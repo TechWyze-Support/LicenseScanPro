@@ -5,6 +5,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
+import { backendOCRService } from "./ocr-service";
 import { insertCustomerSchema, insertLicenseImageSchema, insertScanSessionSchema } from "@shared/schema";
 import { z } from "zod";
 

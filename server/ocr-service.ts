@@ -27,23 +27,18 @@ export interface OCRResult {
   error?: string;
 }
 
-export class OCRService {
+export class BackendOCRService {
   private openai: OpenAI;
 
   constructor() {
-    // We'll make API calls through our backend instead of directly from the browser
     this.openai = new OpenAI({
-      apiKey: 'placeholder', // This won't be used since we'll make backend calls
-      dangerouslyAllowBrowser: true
+      apiKey: process.env.OPENAI_API_KEY || ''
     });
   }
 
-  async extractTextFromLicense(imageData: string): Promise<OCRResult> {
+  async extractTextFromLicense(base64Image: string): Promise<OCRResult> {
     try {
       console.log('Starting OCR text extraction from license image...');
-      
-      // Remove data URL prefix if present
-      const base64Image = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       const response = await this.openai.chat.completions.create({
@@ -209,4 +204,4 @@ If a field is not clearly visible or readable, omit it from the response rather 
   }
 }
 
-export const ocrService = new OCRService();
+export const backendOCRService = new BackendOCRService();
