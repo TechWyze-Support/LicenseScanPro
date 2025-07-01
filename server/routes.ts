@@ -215,6 +215,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OCR text extraction endpoint
+  app.post("/api/ocr/extract", express.json({ limit: '10mb' }), async (req, res) => {
+    try {
+      const { imageData } = req.body;
+      
+      if (!imageData) {
+        return res.status(400).json({ message: "Image data is required" });
+      }
+
+      // Remove data URL prefix if present
+      const base64Image = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+      
+      const result = await backendOCRService.extractTextFromLicense(base64Image);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('OCR endpoint error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'OCR processing failed' 
+      });
+    }
+  });
+
   // Serve uploaded files
   app.use("/uploads", express.static(uploadDir));
 
