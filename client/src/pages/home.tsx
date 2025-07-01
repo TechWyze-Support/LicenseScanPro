@@ -10,7 +10,7 @@ import Header from '@/components/header';
 import CameraCapture from '@/components/camera-capture';
 import FileUpload from '@/components/file-upload';
 import CustomerForm from '@/components/customer-form';
-import BarcodeCamera from '@/components/barcode-camera';
+
 import { 
   CameraIcon, 
   DocumentArrowUpIcon, 
@@ -21,10 +21,11 @@ import {
 } from '@heroicons/react/24/outline';
 import { barcodeDecoder } from '@/lib/barcode-decoder';
 import { faceDetectionService } from '@/lib/face-detection';
+import { ocrService } from '@/lib/ocr-service';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@shared/schema';
 
-type ScanMode = 'none' | 'camera' | 'upload' | 'barcode';
+type ScanMode = 'none' | 'camera' | 'upload';
 type ProcessingStep = 'idle' | 'uploading' | 'decoding' | 'extracting' | 'complete';
 
 export default function Home() {
@@ -278,14 +279,7 @@ export default function Home() {
     );
   }
 
-  if (scanMode === 'barcode') {
-    return (
-      <BarcodeCamera 
-        onBarcodeDetected={handleBarcodeDetected}
-        onClose={() => setScanMode('none')}
-      />
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -330,21 +324,7 @@ export default function Home() {
                     <p className="text-sm text-gray-600 text-center">Upload photos of front and back of license</p>
                   </Button>
 
-                  {/* Barcode Scan Button */}
-                  <Button
-                    onClick={() => setScanMode('barcode')}
-                    disabled={isProcessing}
-                    className="group relative bg-green-50 hover:bg-green-100 border-2 border-green-200 hover:border-green-300 rounded-lg p-6 h-auto flex flex-col items-center transition-all duration-200 text-gray-900"
-                    variant="outline"
-                  >
-                    <div className="bg-green-700 text-white rounded-full p-3 mb-3 group-hover:bg-green-900 transition-colors">
-                      <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h4M4 4h4m0 0V4m0 0h4m0 0v1M4 20h4m0 0v-1m0 0h4m0 0V20" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold mb-1">Barcode Only</h3>
-                    <p className="text-sm text-gray-600 text-center">Scan just the barcode to extract license data</p>
-                  </Button>
+
                 </div>
 
                 {/* Processing Status */}
