@@ -150,47 +150,98 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
     ctx.restore();
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getEventCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    let clientX: number;
+    let clientY: number;
+    
+    if ('touches' in e) {
+      // Touch event
+      if (e.touches.length === 0) return null;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      // Mouse event
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+
+    return { x, y };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const coords = getEventCoordinates(e);
+    if (!coords) return;
 
     setIsDrawing(true);
-    setTempCrop({ x, y, width: 0, height: 0, rotation });
+    setTempCrop({ x: coords.x, y: coords.y, width: 0, height: 0, rotation });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent scrolling
+    const coords = getEventCoordinates(e);
+    if (!coords) return;
+
+    setIsDrawing(true);
+    setTempCrop({ x: coords.x, y: coords.y, width: 0, height: 0, rotation });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !tempCrop) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const coords = getEventCoordinates(e);
+    if (!coords) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const currentX = (e.clientX - rect.left) * scaleX;
-    const currentY = (e.clientY - rect.top) * scaleY;
-
-    const width = currentX - tempCrop.x;
-    const height = currentY - tempCrop.y;
+    const width = coords.x - tempCrop.x;
+    const height = coords.y - tempCrop.y;
 
     setTempCrop({
       ...tempCrop,
       width: Math.abs(width),
       height: Math.abs(height),
-      x: width < 0 ? currentX : tempCrop.x,
-      y: height < 0 ? currentY : tempCrop.y
+      x: width < 0 ? coords.x : tempCrop.x,
+      y: height < 0 ? coords.y : tempCrop.y
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !tempCrop) return;
+    
+    e.preventDefault(); // Prevent scrolling
+    const coords = getEventCoordinates(e);
+    if (!coords) return;
+
+    const width = coords.x - tempCrop.x;
+    const height = coords.y - tempCrop.y;
+
+    setTempCrop({
+      ...tempCrop,
+      width: Math.abs(width),
+      height: Math.abs(height),
+      x: width < 0 ? coords.x : tempCrop.x,
+      y: height < 0 ? coords.y : tempCrop.y
     });
   };
 
   const handleMouseUp = () => {
+    processCrop();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent click events from firing
+    processCrop();
+  };
+
+  const processCrop = () => {
     if (tempCrop && tempCrop.width > 10 && tempCrop.height > 10) {
       // Immediately process this crop using the correct source image
       const sourceImage = requiredImage[currentCropType] === 'front' ? frontImage : backImage;
@@ -415,7 +466,7 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
         <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
           <p className="font-medium">Instructions:</p>
           <p>• Currently cropping: <span className="font-medium text-blue-700">{cropTypeLabels[currentCropType]}</span></p>
-          <p>• Click and drag to select the area, then release to process</p>
+          <p>• Click and drag (or touch and drag) to select the area, then release to process</p>
           <p>• Auto-advances to next crop type when completed</p>
           <p>• Adjust rotation if needed to correct skew</p>
         </div>
@@ -427,8 +478,11 @@ export default function ManualCrop({ frontImage, backImage, onCropsComplete, onC
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             className="w-full cursor-crosshair"
-            style={{ display: 'block' }}
+            style={{ display: 'block', touchAction: 'none' }}
           />
         </div>
 
